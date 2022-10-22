@@ -14,8 +14,9 @@ func TestSetupPostgreDatabase(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.login+":"+tt.password, func(t *testing.T) {
-			_, pool := SetupPostgreDatabase(tt.login, tt.password, t)
+			dbContainer, pool := SetupPostgreDatabase(tt.login, tt.password, t)
 			defer pool.Close()
+			defer dbContainer.Terminate(context.Background())
 			err := pool.Ping(context.Background())
 			if err != nil {
 				t.Error("ping failed:", err)
