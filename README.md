@@ -12,9 +12,9 @@ Below is an example showcasing how `bochka` can be used for testing:
 
 ```go
 func TestDate_WithBD(t *testing.T) {
-	ctx := context.Background()
-	helper := bochka.SetupPostgreTestHelper(t, "14.5")
-	defer helper.Close()
+    helper := bochka.NewPostgreTestHelper(t, bochka.WithTimeout(10*time.Second))
+    helper.Run("14.5")
+    defer helper.Close()
 
 	_, err := helper.Pool.Exec(ctx, `
 CREATE TABLE IF NOT EXISTS tmp1 (
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS tmp1 (
 	t.Run("test date 1", func(t *testing.T) {
 		inputDate := Now()
 		var returnedDate Date
-		err = helper.Pool.QueryRow(ctx, `
+		err = helper.Pool.QueryRow(helper.Context, `
 INSERT INTO tmp1(testdate) VALUES($1) RETURNING testdate;
 `, inputDate).Scan(&returnedDate)
 		if err != nil {
