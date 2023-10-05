@@ -1,15 +1,18 @@
-package postgreSQLtesthelper
+package bochka
 
 import (
 	"context"
 	"fmt"
 	"github.com/docker/go-connections/nat"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"testing"
-	"time"
-
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"testing"
+)
+
+const (
+	login    = "test"
+	password = "12345"
 )
 
 type postgreTestHelper struct {
@@ -17,24 +20,31 @@ type postgreTestHelper struct {
 	Pool       *pgxpool.Pool
 	CancelFunc context.CancelFunc
 	context.Context
+	options
+	t *testing.T
 }
 
-func (h *postgreTestHelper) Close() {
-	h.CancelFunc()
-	h.Pool.Close()
-	_ = h.Container.Terminate(context.Background())
+func (helper *postgreTestHelper) Close() {
+	helper.CancelFunc()
+	helper.Pool.Close()
+	_ = helper.Container.Terminate(context.Background())
 }
 
-const (
-	login    = "test"
-	password = "12345"
-)
+// NewPostgreTestHelper creates a new PostgreSQL test helper.
+func NewPostgreTestHelper(t *testing.T, settings ...option) *postgreTestHelper {
+	return &postgreTestHelper{
+		t:       t,
+		options: getOptions(settings),
+	}
+}
 
-func SetupPostgreTestHelper(t *testing.T, version string) *postgreTestHelper {
+// Run starts PostgreSQL container and creates a connection pool. The version parameter is used to specify the
+// PostgreSQL version. The version must be in the format of "major.minor", e.g. "14.5".
+func (helper *postgreTestHelper) Run(version string) {
+	t := helper.t
 	t.Helper()
 
-	var helper postgreTestHelper
-	helper.Context, helper.CancelFunc = context.WithTimeout(context.Background(), 30*time.Second)
+	helper.Context, helper.CancelFunc = context.WithTimeout(context.Background(), helper.timeout)
 
 	// 1. Create PostgreSQL container request.
 	containerReq := testcontainers.ContainerRequest{
@@ -58,7 +68,6 @@ func SetupPostgreTestHelper(t *testing.T, version string) *postgreTestHelper {
 		})
 	if err != nil {
 		t.Fatal(err)
-		return nil
 	}
 
 	// 3.1 Get host and port of PostgreSQL container.
@@ -66,14 +75,12 @@ func SetupPostgreTestHelper(t *testing.T, version string) *postgreTestHelper {
 	host, err = helper.Container.Host(helper.Context)
 	if err != nil {
 		t.Fatal(err)
-		return nil
 	}
 
 	var port nat.Port
 	port, err = helper.Container.MappedPort(helper.Context, "5432")
 	if err != nil {
 		t.Fatal(err)
-		return nil
 	}
 
 	// 3.2 Create DB connection string and connect.
@@ -81,8 +88,5 @@ func SetupPostgreTestHelper(t *testing.T, version string) *postgreTestHelper {
 	helper.Pool, err = pgxpool.Connect(helper.Context, connectionURI)
 	if err != nil {
 		t.Fatal(err)
-		return nil
 	}
-
-	return &helper
 }
