@@ -47,7 +47,7 @@ INSERT INTO tmp1(testdate) VALUES($1) RETURNING testdate;
 ## Parameters:
 - **SetupPostgreTestHelper(t, version string)**:
     - `t`: The test handler.
-    - `version`: The version of the PostgreSQL image you'd like to use (e.g., "14.5").
+    - `version`: The version of the PostgreSQL image you would like to use (e.g., "14.5").
 
 ## Installation:
 
@@ -58,4 +58,4 @@ go get -u github.com/kaatinga/bochka
 ```
 
 ## Contributing:
-If you'd like to contribute to `bochka`, please raise an issue or submit a pull request on our GitHub repository.
+If you would like to contribute to `bochka`, please raise an issue or submit a pull request on our GitHub repository.
