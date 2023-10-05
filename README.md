@@ -14,7 +14,14 @@ Below is an example showcasing how `bochka` can be used for testing:
 func TestDate_WithBD(t *testing.T) {
     helper := bochka.NewPostgreTestHelper(t, bochka.WithTimeout(10*time.Second))
     helper.Run("14.5")
-    defer helper.Close()
+	
+    t.Cleanup(func() {
+    _, err := helper.Pool.Exec(helper.Context, `DROP TABLE IF EXISTS tmp1`)
+        if err != nil {
+			t.Error("Test table deletion failed:", err)
+        }
+        helper.Close()
+    })
 
 	_, err := helper.Pool.Exec(ctx, `
 CREATE TABLE IF NOT EXISTS tmp1 (
