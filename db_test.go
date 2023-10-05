@@ -6,21 +6,12 @@ import (
 )
 
 func TestSetupPostgreDatabase(t *testing.T) {
-	tests := []struct {
-		login    string
-		password string
-	}{
-		{"kaatinga", "12345"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.login+":"+tt.password, func(t *testing.T) {
-			dbContainer, pool := SetupPostgreDatabase(tt.login, tt.password, t)
-			defer pool.Close()
-			defer dbContainer.Terminate(context.Background())
-			err := pool.Ping(context.Background())
-			if err != nil {
-				t.Error("ping failed:", err)
-			}
-		})
-	}
+	t.Run("run_container", func(t *testing.T) {
+		helper := SetupPostgreTestHelper(t, "14.5")
+		defer helper.Close()
+		err := helper.Pool.Ping(context.Background())
+		if err != nil {
+			t.Error("ping failed:", err)
+		}
+	})
 }
