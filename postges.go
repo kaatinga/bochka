@@ -15,7 +15,7 @@ const (
 	password = "12345"
 )
 
-type postgreTestHelper struct {
+type PostgreTestHelper struct {
 	Container  testcontainers.Container
 	Pool       *pgxpool.Pool
 	CancelFunc context.CancelFunc
@@ -24,27 +24,31 @@ type postgreTestHelper struct {
 	t *testing.T
 }
 
-func (helper *postgreTestHelper) Close() {
+func (helper *PostgreTestHelper) Close() {
 	helper.CancelFunc()
-	helper.Pool.Close()
+	if helper.Pool != nil {
+		helper.Pool.Close()
+	}
+
 	_ = helper.Container.Terminate(context.Background())
 }
 
 // NewPostgreTestHelper creates a new PostgreSQL test helper.
-func NewPostgreTestHelper(t *testing.T, settings ...option) *postgreTestHelper {
-	return &postgreTestHelper{
+func NewPostgreTestHelper(t *testing.T, settings ...option) *PostgreTestHelper {
+	helper := &PostgreTestHelper{
 		t:       t,
 		options: getOptions(settings),
 	}
+	helper.Context, helper.CancelFunc = context.WithTimeout(context.Background(), helper.timeout)
+
+	return helper
 }
 
 // Run starts PostgreSQL container and creates a connection pool. The version parameter is used to specify the
 // PostgreSQL version. The version must be in the format of "major.minor", e.g. "14.5".
-func (helper *postgreTestHelper) Run(version string) {
+func (helper *PostgreTestHelper) Run(version string) {
 	t := helper.t
 	t.Helper()
-
-	helper.Context, helper.CancelFunc = context.WithTimeout(context.Background(), helper.timeout)
 
 	// 1. Create PostgreSQL container request.
 	containerReq := testcontainers.ContainerRequest{
