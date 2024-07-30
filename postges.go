@@ -3,11 +3,12 @@ package bochka
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/docker/go-connections/nat"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"testing"
 )
 
 const (
@@ -89,7 +90,7 @@ func (helper *PostgreTestHelper) Run(version string) {
 
 	// 3.2 Create DB connection string and connect.
 	connectionURI := fmt.Sprintf("postgres://%s:%s@%v:%v/testdb", login, password, host, port.Port())
-	helper.Pool, err = pgxpool.Connect(helper.Context, connectionURI)
+	helper.Pool, err = pgxpool.New(helper.Context, connectionURI)
 	if err != nil {
 		t.Fatal(err)
 	}
