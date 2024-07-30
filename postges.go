@@ -51,11 +51,15 @@ func (helper *PostgreTestHelper) Run(version string) {
 	t := helper.t
 	t.Helper()
 
+	if helper.port == "" {
+		helper.port = "5432"
+	}
+
 	// 1. Create PostgreSQL container request.
 	containerReq := testcontainers.ContainerRequest{
 		Image:        "postgres:" + version,
-		ExposedPorts: []string{"5432/tcp"},
-		WaitingFor:   wait.ForListeningPort("5432/tcp"),
+		ExposedPorts: []string{helper.port + "/tcp"},
+		WaitingFor:   wait.ForListeningPort(nat.Port(helper.port + "/tcp")),
 		Env: map[string]string{
 			"POSTGRES_DB":       "testdb",
 			"POSTGRES_USER":     login,
@@ -83,7 +87,7 @@ func (helper *PostgreTestHelper) Run(version string) {
 	}
 
 	var port nat.Port
-	port, err = helper.Container.MappedPort(helper.Context, "5432")
+	port, err = helper.Container.MappedPort(helper.Context, nat.Port(helper.port))
 	if err != nil {
 		t.Fatal(err)
 	}

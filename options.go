@@ -4,6 +4,7 @@ import "time"
 
 type options struct {
 	timeout time.Duration
+	port    string
 }
 
 type option func(*options)
@@ -19,5 +20,11 @@ func getOptions(opts []option) (opt options) {
 func WithTimeout(timeout time.Duration) option {
 	return func(opt *options) {
 		opt.timeout = timeout
+	}
+}
+
+func WithPort(port string) option {
+	return func(opt *options) {
+		opt.port = port
 	}
 }
