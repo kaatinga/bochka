@@ -34,6 +34,10 @@ func (helper *PostgreTestHelper) Close() {
 	_ = helper.Container.Terminate(context.Background())
 }
 
+func (helper *PostgreTestHelper) Port() string {
+	return helper.port
+}
+
 // NewPostgreTestHelper creates a new PostgreSQL test helper.
 func NewPostgreTestHelper(t *testing.T, settings ...option) *PostgreTestHelper {
 	helper := &PostgreTestHelper{
