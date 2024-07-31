@@ -14,6 +14,7 @@ import (
 const (
 	login    = "test"
 	password = "12345"
+	dbName   = "testdb"
 )
 
 type Bochka struct {
@@ -63,9 +64,12 @@ func (b *Bochka) Run(version string) {
 	containerReq := testcontainers.ContainerRequest{
 		Image:        "postgres:" + version,
 		ExposedPorts: []string{b.port + "/tcp"},
-		WaitingFor:   wait.ForListeningPort(nat.Port(b.port + "/tcp")),
+		WaitingFor: wait.ForAll(
+			wait.ForLog("database system is ready to accept connections"),
+			wait.ForListeningPort(nat.Port(b.port+"/tcp")),
+		),
 		Env: map[string]string{
-			"POSTGRES_DB":       "testdb",
+			"POSTGRES_DB":       dbName,
 			"POSTGRES_USER":     login,
 			"POSTGRES_PASSWORD": password,
 		},
@@ -97,7 +101,7 @@ func (b *Bochka) Run(version string) {
 	}
 
 	// 3.2 Create DB connection string and connect.
-	connectionURI := fmt.Sprintf("postgres://%s:%s@%v:%v/testdb", login, password, host, port.Port())
+	connectionURI := fmt.Sprintf("postgres://%s:%s@%v:%v/%s", login, password, host, port.Port(), dbName)
 	b.Pool, err = pgxpool.New(b.Context, connectionURI)
 	if err != nil {
 		t.Fatal(err)
