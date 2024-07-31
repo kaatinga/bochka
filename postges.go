@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -56,23 +57,28 @@ func (b *Bochka) Run(version string) {
 	containerReq := testcontainers.ContainerRequest{
 		Image:        "postgres:16.3", // Specify the PostgreSQL version as needed
 		ExposedPorts: []string{"5432/tcp"},
+		HostConfigModifier: func(hostConfig *container.HostConfig) {
+			hostConfig.PortBindings = map[nat.Port][]nat.PortBinding{
+				"5432/tcp": {{HostIP: "", HostPort: "5433"}},
+			}
+			hostConfig.AutoRemove = true
+		},
 		WaitingFor: wait.ForAll(
 			wait.ForLog("database system is ready to accept connections"),
 			wait.ForListeningPort("5432/tcp"),
 		),
 		Env: map[string]string{
-			"POSTGRES_DB":       "testdb",
-			"POSTGRES_USER":     "test",
-			"POSTGRES_PASSWORD": "12345",
+			"POSTGRES_DB":       dbName,
+			"POSTGRES_USER":     login,
+			"POSTGRES_PASSWORD": password,
 		},
 	}
 
 	t.Logf("Starting PostgreSQL container with version %s", version)
 
-	// 2. Start PostgreSQL container.
 	var err error
 	b.Container, err = testcontainers.GenericContainer(
-		context.Background(),
+		b.Context,
 		testcontainers.GenericContainerRequest{
 			ContainerRequest: containerReq,
 			Started:          true,
@@ -83,7 +89,6 @@ func (b *Bochka) Run(version string) {
 
 	t.Logf("PostgreSQL container started with ID %s", b.Container.GetContainerID())
 
-	// 3.1 Get host and port of PostgreSQL container.
 	var host string
 	host, err = b.Container.Host(b.Context)
 	if err != nil {
