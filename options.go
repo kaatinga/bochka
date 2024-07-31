@@ -21,9 +21,3 @@ func WithTimeout(timeout time.Duration) option {
 		opt.timeout = timeout
 	}
 }
-
-func WithPort(port string) option {
-	return func(opt *options) {
-		opt.port = port
-	}
-}
