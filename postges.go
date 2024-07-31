@@ -2,13 +2,14 @@ package bochka
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/kaatinga/strconv"
 )
 
 const (
@@ -24,11 +25,28 @@ type Bochka struct {
 	options
 	t *testing.T
 
-	connectionURI string
+	host string
+	port uint16
 }
 
-func (b *Bochka) ConnectionURI() string {
-	return b.connectionURI
+func (b *Bochka) Host() string {
+	return b.host
+}
+
+func (b *Bochka) Port() uint16 {
+	return b.port
+}
+
+func (b *Bochka) User() string {
+	return login
+}
+
+func (b *Bochka) Password() string {
+	return password
+}
+
+func (b *Bochka) DBName() string {
+	return dbName
 }
 
 func (b *Bochka) Close() {
@@ -89,21 +107,22 @@ func (b *Bochka) Run(version string) {
 
 	t.Logf("PostgreSQL container started with ID %s", b.Container.GetContainerID())
 
-	var host string
-	host, err = b.Container.Host(b.Context)
+	b.host, err = b.Container.Host(b.Context)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Logf("PostgreSQL host: %s", host)
+	t.Logf("PostgreSQL host: %s", b.host)
 
 	var port nat.Port
 	port, err = b.Container.MappedPort(b.Context, "5432")
 	if err != nil {
 		t.Fatal(err)
 	}
+	b.port, err = faststrconv.GetUint16(port.Port())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Logf("PostgreSQL port: %s", port.Port())
-
-	b.connectionURI = fmt.Sprintf("postgres://%s:%s@%v:%v/%s", login, password, host, port.Port(), dbName)
 }
