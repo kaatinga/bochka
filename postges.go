@@ -36,10 +36,6 @@ func (b *Bochka) Close() {
 	_ = b.Container.Terminate(b.Context)
 }
 
-func (b *Bochka) Port() string {
-	return b.port
-}
-
 // New creates a new PostgreSQL test helper.
 func New(t *testing.T, ctx context.Context, settings ...option) *Bochka {
 	helper := &Bochka{
@@ -57,23 +53,17 @@ func (b *Bochka) Run(version string) {
 	t := b.t
 	t.Helper()
 
-	if b.port == "" {
-		b.port = "5432"
-		t.Logf("Port is not set, using default port %s", b.port)
-	}
-
-	// 1. Create PostgreSQL container request.
 	containerReq := testcontainers.ContainerRequest{
-		Image:        "postgres:" + version,
-		ExposedPorts: []string{b.port + "/tcp"},
+		Image:        "postgres:16.3", // Specify the PostgreSQL version as needed
+		ExposedPorts: []string{"5432/tcp"},
 		WaitingFor: wait.ForAll(
 			wait.ForLog("database system is ready to accept connections"),
-			wait.ForListeningPort(nat.Port(b.port+"/tcp")),
+			wait.ForListeningPort("5432/tcp"),
 		),
 		Env: map[string]string{
-			"POSTGRES_DB":       dbName,
-			"POSTGRES_USER":     login,
-			"POSTGRES_PASSWORD": password,
+			"POSTGRES_DB":       "testdb",
+			"POSTGRES_USER":     "test",
+			"POSTGRES_PASSWORD": "12345",
 		},
 	}
 
@@ -103,7 +93,7 @@ func (b *Bochka) Run(version string) {
 	t.Logf("PostgreSQL host: %s", host)
 
 	var port nat.Port
-	port, err = b.Container.MappedPort(b.Context, "5433")
+	port, err = b.Container.MappedPort(b.Context, "5432")
 	if err != nil {
 		t.Fatal(err)
 	}

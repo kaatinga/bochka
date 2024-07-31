@@ -4,7 +4,6 @@ import "time"
 
 type options struct {
 	timeout time.Duration
-	port    string
 }
 
 type option func(*options)
