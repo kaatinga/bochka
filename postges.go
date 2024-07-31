@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/docker/go-connections/nat"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -19,20 +18,22 @@ const (
 
 type Bochka struct {
 	Container  testcontainers.Container
-	Pool       *pgxpool.Pool
 	CancelFunc context.CancelFunc
 	context.Context
 	options
 	t *testing.T
+
+	connectionURI string
+}
+
+func (b *Bochka) ConnectionURI() string {
+	return b.connectionURI
 }
 
 func (b *Bochka) Close() {
 	b.CancelFunc()
-	if b.Pool != nil {
-		b.Pool.Close()
-	}
 
-	_ = b.Container.Terminate(context.Background())
+	_ = b.Container.Terminate(b.Context)
 }
 
 func (b *Bochka) Port() string {
@@ -58,6 +59,7 @@ func (b *Bochka) Run(version string) {
 
 	if b.port == "" {
 		b.port = "5432"
+		t.Logf("Port is not set, using default port %s", b.port)
 	}
 
 	// 1. Create PostgreSQL container request.
@@ -75,6 +77,8 @@ func (b *Bochka) Run(version string) {
 		},
 	}
 
+	t.Logf("Starting PostgreSQL container with version %s", version)
+
 	// 2. Start PostgreSQL container.
 	var err error
 	b.Container, err = testcontainers.GenericContainer(
@@ -87,6 +91,8 @@ func (b *Bochka) Run(version string) {
 		t.Fatal(err)
 	}
 
+	t.Logf("PostgreSQL container started with ID %s", b.Container.GetContainerID())
+
 	// 3.1 Get host and port of PostgreSQL container.
 	var host string
 	host, err = b.Container.Host(b.Context)
@@ -94,16 +100,15 @@ func (b *Bochka) Run(version string) {
 		t.Fatal(err)
 	}
 
+	t.Logf("PostgreSQL host: %s", host)
+
 	var port nat.Port
-	port, err = b.Container.MappedPort(b.Context, nat.Port(b.port))
+	port, err = b.Container.MappedPort(b.Context, "5433")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// 3.2 Create DB connection string and connect.
-	connectionURI := fmt.Sprintf("postgres://%s:%s@%v:%v/%s", login, password, host, port.Port(), dbName)
-	b.Pool, err = pgxpool.New(b.Context, connectionURI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Logf("PostgreSQL port: %s", port.Port())
+
+	b.connectionURI = fmt.Sprintf("postgres://%s:%s@%v:%v/%s", login, password, host, port.Port(), dbName)
 }
