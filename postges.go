@@ -77,7 +77,7 @@ func (b *Bochka) Run(version string) {
 	}
 
 	containerReq := testcontainers.ContainerRequest{
-		Image:        b.options.image + ":16.3", // Specify the PostgreSQL version as needed
+		Image:        b.options.image + ":" + version, // Specify the PostgreSQL version as needed
 		ExposedPorts: []string{"5432/tcp"},
 		HostConfigModifier: func(hostConfig *container.HostConfig) {
 			hostConfig.PortBindings = map[nat.Port][]nat.PortBinding{
