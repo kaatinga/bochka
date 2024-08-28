@@ -2,6 +2,7 @@ package bochka
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/docker/docker/api/types/container"
@@ -9,13 +10,16 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
+	"github.com/testcontainers/testcontainers-go/network"
+
 	"github.com/kaatinga/strconv"
 )
 
 const (
-	login    = "test"
-	password = "12345"
-	dbName   = "testdb"
+	login     = "test"
+	password  = "12345"
+	dbName    = "testdb"
+	hostAlias = "postgres"
 )
 
 type Bochka struct {
@@ -25,8 +29,17 @@ type Bochka struct {
 	options
 	t *testing.T
 
-	host string
-	port uint16
+	host    string
+	port    uint16
+	network *testcontainers.DockerNetwork
+}
+
+func (b *Bochka) HostAlias() string {
+	return hostAlias
+}
+
+func (b *Bochka) NetworkName() string {
+	return b.network.Name
 }
 
 func (b *Bochka) Host() string {
@@ -76,6 +89,11 @@ func (b *Bochka) Run(version string) {
 		b.options.image = "postgres"
 	}
 
+	err := b.setupNetwork(b.Context)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	containerReq := testcontainers.ContainerRequest{
 		Image:        b.options.image + ":" + version, // Specify the PostgreSQL version as needed
 		ExposedPorts: []string{"5432/tcp"},
@@ -94,11 +112,14 @@ func (b *Bochka) Run(version string) {
 			"POSTGRES_USER":     login,
 			"POSTGRES_PASSWORD": password,
 		},
+		Networks: []string{b.network.Name},
+		NetworkAliases: map[string][]string{
+			b.network.Name: {hostAlias},
+		},
 	}
 
 	t.Logf("Starting PostgreSQL container with version %s", version)
 
-	var err error
 	b.Container, err = testcontainers.GenericContainer(
 		b.Context,
 		testcontainers.GenericContainerRequest{
@@ -129,4 +150,14 @@ func (b *Bochka) Run(version string) {
 	}
 
 	t.Logf("PostgreSQL port: %s", port.Port())
+}
+
+func (b *Bochka) setupNetwork(ctx context.Context) error {
+	var err error
+	b.network, err = network.New(ctx, network.WithAttachable())
+	if err != nil {
+		return fmt.Errorf("failed to create network: %w", err)
+	}
+
+	return nil
 }
