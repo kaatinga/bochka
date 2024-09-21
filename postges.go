@@ -2,17 +2,13 @@ package bochka
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
+	"github.com/kaatinga/strconv"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-
-	"github.com/testcontainers/testcontainers-go/network"
-
-	"github.com/kaatinga/strconv"
 )
 
 const (
@@ -89,9 +85,12 @@ func (b *Bochka) Run(version string) {
 		b.options.image = "postgres"
 	}
 
-	err := b.setupNetwork(b.Context)
-	if err != nil {
-		t.Fatal(err)
+	if b.network == nil {
+		var err error
+		b.network, err = NewNetwork(b.Context)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	containerReq := testcontainers.ContainerRequest{
@@ -120,6 +119,7 @@ func (b *Bochka) Run(version string) {
 
 	t.Logf("Starting PostgreSQL container with version %s", version)
 
+	var err error
 	b.Container, err = testcontainers.GenericContainer(
 		b.Context,
 		testcontainers.GenericContainerRequest{
@@ -150,14 +150,4 @@ func (b *Bochka) Run(version string) {
 	}
 
 	t.Logf("PostgreSQL port: %s", port.Port())
-}
-
-func (b *Bochka) setupNetwork(ctx context.Context) error {
-	var err error
-	b.network, err = network.New(ctx, network.WithAttachable())
-	if err != nil {
-		return fmt.Errorf("failed to create network: %w", err)
-	}
-
-	return nil
 }
