@@ -59,8 +59,7 @@ func (b *Bochka) DBName() string {
 }
 
 func (b *Bochka) Close() error {
-	b.CancelFunc()
-
+	defer b.CancelFunc()
 	return b.Container.Terminate(b.Context)
 }
 
