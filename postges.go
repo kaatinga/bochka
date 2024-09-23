@@ -58,10 +58,10 @@ func (b *Bochka) DBName() string {
 	return dbName
 }
 
-func (b *Bochka) Close() {
+func (b *Bochka) Close() error {
 	b.CancelFunc()
 
-	_ = b.Container.Terminate(b.Context)
+	return b.Container.Terminate(b.Context)
 }
 
 // New creates a new PostgreSQL test helper.
@@ -130,7 +130,7 @@ func (b *Bochka) Run(version string) {
 		t.Fatal(err)
 	}
 
-	t.Logf("PostgreSQL container started with ID %s", b.Container.GetContainerID())
+	// t.Logf("PostgreSQL container started with ID %s", b.Container.GetContainerID())
 
 	b.host, err = b.Container.Host(b.Context)
 	if err != nil {
