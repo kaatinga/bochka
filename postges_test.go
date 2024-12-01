@@ -6,9 +6,11 @@ import (
 	"time"
 )
 
-func TestSetupPostgreDatabase(t *testing.T) {
-	helper := New(t, context.Background(), WithTimeout(10*time.Second))
+func Test_setupPostgreDatabase(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	helper := New(t, ctx)
 	t.Cleanup(func() {
+		cancel()
 		helper.Close()
 	})
 	t.Run("run_container", func(t *testing.T) {

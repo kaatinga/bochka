@@ -19,8 +19,7 @@ const (
 )
 
 type Bochka struct {
-	Container  testcontainers.Container
-	CancelFunc context.CancelFunc
+	Container testcontainers.Container
 	context.Context
 	options
 	t *testing.T
@@ -59,19 +58,16 @@ func (b *Bochka) DBName() string {
 }
 
 func (b *Bochka) Close() error {
-	defer b.CancelFunc()
 	return b.Container.Terminate(b.Context)
 }
 
 // New creates a new PostgreSQL test helper.
 func New(t *testing.T, ctx context.Context, settings ...option) *Bochka {
-	helper := &Bochka{
+	return &Bochka{
 		t:       t,
 		options: getOptions(settings),
+		Context: ctx,
 	}
-	helper.Context, helper.CancelFunc = context.WithTimeout(ctx, helper.timeout)
-
-	return helper
 }
 
 // Run starts PostgreSQL container and creates a connection pool. The version parameter is used to specify the

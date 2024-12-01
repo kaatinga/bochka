@@ -22,12 +22,6 @@ func getOptions(opts []option) (opt options) {
 	return
 }
 
-func WithTimeout(timeout time.Duration) option {
-	return func(opt *options) {
-		opt.timeout = timeout
-	}
-}
-
 func WithCustomImage(image string) option {
 	return func(opt *options) {
 		opt.image = image
