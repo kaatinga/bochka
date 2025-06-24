@@ -11,6 +11,7 @@ type options struct {
 	image   string
 	version string
 	network *testcontainers.DockerNetwork
+	port    string // Host port for PostgreSQL container
 }
 
 type option func(*options)
@@ -33,5 +34,11 @@ func WithCustomImage(image, version string) option {
 func WithNetwork(network *testcontainers.DockerNetwork) option {
 	return func(opt *options) {
 		opt.network = network
+	}
+}
+
+func WithPort(port string) option {
+	return func(opt *options) {
+		opt.port = port
 	}
 }

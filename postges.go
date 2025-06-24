@@ -6,7 +6,7 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
-	"github.com/kaatinga/strconv"
+	faststrconv "github.com/kaatinga/strconv"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -18,6 +18,7 @@ const (
 	hostAlias = "postgres"
 )
 
+// Bochka is a test helper for managing a PostgreSQL container lifecycle.
 type Bochka struct {
 	Container testcontainers.Container
 	context.Context
@@ -29,34 +30,42 @@ type Bochka struct {
 	network *testcontainers.DockerNetwork
 }
 
+// HostAlias returns the network alias for the PostgreSQL container.
 func (b *Bochka) HostAlias() string {
 	return hostAlias
 }
 
+// NetworkName returns the name of the Docker network used by the container.
 func (b *Bochka) NetworkName() string {
 	return b.network.Name
 }
 
+// Host returns the host address of the PostgreSQL container.
 func (b *Bochka) Host() string {
 	return b.host
 }
 
+// Port returns the mapped port of the PostgreSQL container.
 func (b *Bochka) Port() uint16 {
 	return b.port
 }
 
+// User returns the username for the PostgreSQL instance.
 func (b *Bochka) User() string {
 	return login
 }
 
+// Password returns the password for the PostgreSQL instance.
 func (b *Bochka) Password() string {
 	return password
 }
 
+// DBName returns the database name for the PostgreSQL instance.
 func (b *Bochka) DBName() string {
 	return dbName
 }
 
+// Close terminates the PostgreSQL container.
 func (b *Bochka) Close() error {
 	return b.Container.Terminate(b.Context)
 }
@@ -70,8 +79,8 @@ func New(t *testing.T, ctx context.Context, settings ...option) *Bochka {
 	}
 }
 
-// Run starts PostgreSQL container and creates a connection pool.
-func (b *Bochka) Run() {
+// Start starts the PostgreSQL container and sets up connection details. Returns error on failure.
+func (b *Bochka) Start() error {
 	t := b.t
 	t.Helper()
 
@@ -86,8 +95,13 @@ func (b *Bochka) Run() {
 		var err error
 		b.network, err = NewNetwork(b.Context)
 		if err != nil {
-			t.Fatal(err)
+			return err
 		}
+	}
+
+	port := b.options.port
+	if port == "" {
+		port = "5433"
 	}
 
 	containerReq := testcontainers.ContainerRequest{
@@ -95,7 +109,7 @@ func (b *Bochka) Run() {
 		ExposedPorts: []string{"5432/tcp"},
 		HostConfigModifier: func(hostConfig *container.HostConfig) {
 			hostConfig.PortBindings = map[nat.Port][]nat.PortBinding{
-				"5432/tcp": {{HostIP: "", HostPort: "5433"}},
+				"5432/tcp": {{HostIP: "", HostPort: port}},
 			}
 			hostConfig.AutoRemove = true
 		},
@@ -124,27 +138,26 @@ func (b *Bochka) Run() {
 			Started:          true,
 		})
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
-
-	// t.Logf("PostgreSQL container started with ID %s", b.Container.GetContainerID())
 
 	b.host, err = b.Container.Host(b.Context)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 
 	t.Logf("PostgreSQL host: %s", b.host)
 
-	var port nat.Port
-	port, err = b.Container.MappedPort(b.Context, "5432")
+	var mappedPort nat.Port
+	mappedPort, err = b.Container.MappedPort(b.Context, "5432")
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
-	b.port, err = faststrconv.GetUint16(port.Port())
+	b.port, err = faststrconv.GetUint16(mappedPort.Port())
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 
-	t.Logf("PostgreSQL port: %s", port.Port())
+	t.Logf("PostgreSQL port: %s", mappedPort.Port())
+	return nil
 }
