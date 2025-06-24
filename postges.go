@@ -128,7 +128,7 @@ func (b *Bochka) Start() error {
 		},
 	}
 
-	t.Logf("Starting PostgreSQL container with version %s", b.options.version)
+	t.Logf("Starting PostgreSQL container: image=%s, version=%s, host port=%s", b.options.image, b.options.version, port)
 
 	var err error
 	b.Container, err = testcontainers.GenericContainer(
