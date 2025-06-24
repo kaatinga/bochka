@@ -70,14 +70,16 @@ func New(t *testing.T, ctx context.Context, settings ...option) *Bochka {
 	}
 }
 
-// Run starts PostgreSQL container and creates a connection pool. The version parameter is used to specify the
-// PostgreSQL version. The version must be in the format of "major.minor", e.g. "14.5".
-func (b *Bochka) Run(version string) {
+// Run starts PostgreSQL container and creates a connection pool.
+func (b *Bochka) Run() {
 	t := b.t
 	t.Helper()
 
 	if b.options.image == "" {
 		b.options.image = "postgres"
+	}
+	if b.options.version == "" {
+		b.options.version = "17.5"
 	}
 
 	if b.network == nil {
@@ -89,7 +91,7 @@ func (b *Bochka) Run(version string) {
 	}
 
 	containerReq := testcontainers.ContainerRequest{
-		Image:        b.options.image + ":" + version, // Specify the PostgreSQL version as needed
+		Image:        b.options.image + ":" + b.options.version,
 		ExposedPorts: []string{"5432/tcp"},
 		HostConfigModifier: func(hostConfig *container.HostConfig) {
 			hostConfig.PortBindings = map[nat.Port][]nat.PortBinding{
@@ -112,7 +114,7 @@ func (b *Bochka) Run(version string) {
 		},
 	}
 
-	t.Logf("Starting PostgreSQL container with version %s", version)
+	t.Logf("Starting PostgreSQL container with version %s", b.options.version)
 
 	var err error
 	b.Container, err = testcontainers.GenericContainer(

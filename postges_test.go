@@ -14,6 +14,6 @@ func Test_setupPostgreDatabase(t *testing.T) {
 		helper.Close()
 	})
 	t.Run("run_container", func(t *testing.T) {
-		helper.Run("14.5")
+		helper.Run()
 	})
 }
