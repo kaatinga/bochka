@@ -9,6 +9,7 @@ import (
 type options struct {
 	timeout time.Duration
 	image   string
+	version string
 	network *testcontainers.DockerNetwork
 }
 
@@ -22,9 +23,10 @@ func getOptions(opts []option) (opt options) {
 	return
 }
 
-func WithCustomImage(image string) option {
+func WithCustomImage(image, version string) option {
 	return func(opt *options) {
 		opt.image = image
+		opt.version = version
 	}
 }
 
