@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	natsHostAlias = "nats"
-	natsPort      = "4222"
-	tcpPort       = "4222/tcp"
+	natsHostAlias   = "nats"
+	natsPort        = "4222"
+	natsExposedPort = "4222/tcp"
 )
 
 // NatsService implements ContainerService for NATS
@@ -37,11 +37,11 @@ func (n *NatsService) Start(ctx context.Context) error {
 	containerReq := testcontainers.ContainerRequest{
 		Image:        n.config.Image + ":" + n.config.Version,
 		Cmd:          []string{"nats-server", "-js"},
-		ExposedPorts: []string{tcpPort},
+		ExposedPorts: []string{natsExposedPort},
 		Env:          envVars,
 		WaitingFor: wait.ForAll(
 			wait.ForLog("Server is ready").WithStartupTimeout(30*time.Second),
-			wait.ForListeningPort(tcpPort),
+			wait.ForListeningPort(natsExposedPort),
 		),
 		Networks: []string{n.network.Name},
 		NetworkAliases: map[string][]string{
@@ -49,7 +49,7 @@ func (n *NatsService) Start(ctx context.Context) error {
 		},
 		HostConfigModifier: func(hostConfig *container.HostConfig) {
 			hostConfig.PortBindings = map[nat.Port][]nat.PortBinding{
-				tcpPort: {
+				natsExposedPort: {
 					{
 						HostIP:   "0.0.0.0",
 						HostPort: faststrconv.Uint162String(n.Port()),
@@ -77,11 +77,15 @@ func (n *NatsService) Start(ctx context.Context) error {
 	}
 
 	var mappedPort nat.Port
-	mappedPort, err = n.Container.MappedPort(ctx, tcpPort)
+	mappedPort, err = n.Container.MappedPort(ctx, natsPort)
 	if err != nil {
 		return err
 	}
-	n.port = uint16(mappedPort.Int())
+
+	n.port, err = faststrconv.GetUint16(mappedPort.Port())
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -109,6 +113,23 @@ func (n *NatsService) Port() uint16 {
 // HostAlias returns the network alias for the NATS container.
 func (n *NatsService) HostAlias() string {
 	return natsHostAlias
+}
+
+func (n *NatsService) User() string {
+	return ""
+}
+
+func (n *NatsService) Password() string {
+	return ""
+}
+
+func (n *NatsService) DBName() string {
+	return ""
+}
+
+// GetContainer returns the underlying container service
+func (n *NatsService) GetContainer() testcontainers.Container {
+	return n.Container
 }
 
 // NewNats creates a new NATS test helper.
