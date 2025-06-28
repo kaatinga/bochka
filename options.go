@@ -23,7 +23,6 @@ func (o *options) applyOptions(opts []option) {
 	for _, opt := range opts {
 		opt(o)
 	}
-	return
 }
 
 func WithCustomImage(image, version string) option {
@@ -45,8 +44,10 @@ func WithPort(port string) option {
 	}
 }
 
-func WithEnvVar(key, value string) option {
+func WithEnvVars(vars map[string]string) option {
 	return func(opt *options) {
-		opt.extraEnvVars[key] = value
+		for k, v := range vars {
+			opt.extraEnvVars[k] = v
+		}
 	}
 }

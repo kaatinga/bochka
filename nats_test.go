@@ -44,8 +44,8 @@ func TestNatsWithCustomEnvVars(t *testing.T) {
 	// Start NATS container with custom environment variables
 	helper := NewNats(t, ctx,
 		WithPort("4223"),
-		WithEnvVar("NATS_SERVER_NAME", "test-server"),
-		WithEnvVar("NATS_CLUSTER_NAME", "test-cluster"),
+		WithEnvVars(map[string]string{"NATS_SERVER_NAME": "test-server"}),
+		WithEnvVars(map[string]string{"NATS_CLUSTER_NAME": "test-cluster"}),
 	)
 	if err := helper.Start(); err != nil {
 		t.Fatalf("failed to start NATS container: %v", err)
