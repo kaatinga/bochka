@@ -2,6 +2,7 @@ package bochka
 
 import (
 	"context"
+	"io"
 	"testing"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -9,11 +10,16 @@ import (
 
 // ContainerService defines the interface that any container service must implement
 type ContainerService interface {
-	Start(ctx context.Context) error
+	Start(ctx context.Context) error // Start is not supposed to be used. Use bochka.Start()
 	Close() error
 	NetworkName() string
 	Host() string
 	Port() uint16
+	HostAlias() string
+	User() string
+	Password() string
+	DBName() string
+	GetContainer() testcontainers.Container
 }
 
 // ContainerConfig holds common configuration for any container
@@ -52,4 +58,22 @@ func (b *Bochka[T]) Close() error {
 
 func (b *Bochka[T]) Start() error {
 	return b.Service().Start(b.Context)
+}
+
+func (b *Bochka[T]) PrintLogs() {
+	logReader, err := b.Service().GetContainer().Logs(b.Context)
+	if err != nil {
+		b.t.Errorf("failed to get %s container logs: %v", b.service.HostAlias(), err)
+		return
+	}
+
+	defer logReader.Close()
+
+	logs, err := io.ReadAll(logReader)
+	if err != nil {
+		b.t.Errorf("failed to get %s container logs: %v", b.service.HostAlias(), err)
+		return
+	}
+
+	b.t.Logf("%s container logs:\n%s", b.service.HostAlias(), logs)
 }
