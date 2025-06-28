@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	login     = "test"
-	password  = "12345"
-	dbName    = "testdb"
-	hostAlias = "postgres"
+	postgresLogin     = "test"
+	postgresPassword  = "12345"
+	postgresDBName    = "testdb"
+	postgresHostAlias = "postgres"
 )
 
 // PostgresService implements ContainerService for PostgreSQL
@@ -30,9 +30,9 @@ type PostgresService struct {
 // Start starts the PostgreSQL container and sets up connection details. Returns error on failure.
 func (p *PostgresService) Start(ctx context.Context) error {
 	envVars := map[string]string{
-		"POSTGRES_DB":       dbName,
-		"POSTGRES_USER":     login,
-		"POSTGRES_PASSWORD": password,
+		"POSTGRES_DB":       postgresDBName,
+		"POSTGRES_USER":     postgresLogin,
+		"POSTGRES_PASSWORD": postgresPassword,
 	}
 
 	for env, val := range p.config.EnvVars {
@@ -55,7 +55,7 @@ func (p *PostgresService) Start(ctx context.Context) error {
 		Env:      envVars,
 		Networks: []string{p.network.Name},
 		NetworkAliases: map[string][]string{
-			p.network.Name: {hostAlias},
+			p.network.Name: {postgresHostAlias},
 		},
 	}
 
@@ -110,22 +110,27 @@ func (p *PostgresService) Port() uint16 {
 
 // HostAlias returns the network alias for the PostgreSQL container.
 func (p *PostgresService) HostAlias() string {
-	return hostAlias
+	return postgresHostAlias
 }
 
 // User returns the username for the PostgreSQL instance.
 func (p *PostgresService) User() string {
-	return login
+	return postgresLogin
 }
 
 // Password returns the password for the PostgreSQL instance.
 func (p *PostgresService) Password() string {
-	return password
+	return postgresPassword
 }
 
 // DBName returns the database name for the PostgreSQL instance.
 func (p *PostgresService) DBName() string {
-	return dbName
+	return postgresDBName
+}
+
+// GetContainer returns the underlying container service
+func (p *PostgresService) GetContainer() testcontainers.Container {
+	return p.Container
 }
 
 // NewPostgres creates a new PostgreSQL test helper.
