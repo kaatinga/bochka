@@ -9,18 +9,24 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func Test_setupPostgreDatabase(t *testing.T) {
+func Test_PostgreDatabase(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	// Start container with default port and run pgx query
-	helper := New(t, ctx)
-	err := helper.Start()
-	if err != nil {
+	helper := NewPostgres(t, ctx)
+	if err := helper.Start(); err != nil {
 		t.Fatalf("failed to start container: %v", err)
 	}
-	t.Logf("Started default port container on port %d", helper.Port())
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", helper.User(), helper.Password(), helper.Host(), helper.Port(), helper.DBName())
+	t.Logf("Started default port container on port %d", helper.Service().Port())
+	connStr := fmt.Sprintf(
+		"postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		helper.Service().User(),
+		helper.Service().Password(),
+		helper.Service().Host(),
+		helper.Service().Port(),
+		helper.Service().DBName(),
+	)
 	conn, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
 		helper.Close()
@@ -54,13 +60,13 @@ func Test_setupPostgreDatabase(t *testing.T) {
 	helper.Close()
 
 	// Start container with custom port and run pgx query
-	helper = New(t, ctx, WithPort("5555"))
-	err = helper.Start()
+	helper = NewPostgres(t, ctx, WithPort("5555"))
+	err = helper.Service().Start(ctx)
 	if err != nil {
 		t.Fatalf("failed to start container with custom port: %v", err)
 	}
-	t.Logf("Started custom port container on port %d", helper.Port())
-	connStr = fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", helper.User(), helper.Password(), helper.Host(), helper.Port(), helper.DBName())
+	t.Logf("Started custom port container on port %d", helper.Service().Port())
+	connStr = fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", helper.Service().User(), helper.Service().Password(), helper.Service().Host(), helper.Service().Port(), helper.Service().DBName())
 	conn, err = pgx.Connect(context.Background(), connStr)
 	if err != nil {
 		helper.Close()

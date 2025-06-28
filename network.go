@@ -8,6 +8,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/network"
 )
 
+// NewNetwork creates a new Docker network for container communication.
 func NewNetwork(ctx context.Context) (*testcontainers.DockerNetwork, error) {
 	dockerNetwork, err := network.New(ctx, network.WithAttachable())
 	if err != nil {

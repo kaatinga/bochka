@@ -7,19 +7,21 @@ import (
 )
 
 type options struct {
-	timeout time.Duration
-	image   string
-	version string
-	network *testcontainers.DockerNetwork
-	port    string // Host port for PostgreSQL container
+	timeout      time.Duration
+	image        string
+	version      string
+	network      *testcontainers.DockerNetwork
+	port         string // Host port for container
+	extraEnvVars map[string]string
 }
 
 type option func(*options)
 
-func getOptions(opts []option) (opt options) {
-	opt.timeout = 30 * time.Second
-	for _, o := range opts {
-		o(&opt)
+func (o *options) applyOptions(opts []option) {
+	o.timeout = 30 * time.Second
+	o.extraEnvVars = make(map[string]string)
+	for _, opt := range opts {
+		opt(o)
 	}
 	return
 }
@@ -40,5 +42,11 @@ func WithNetwork(network *testcontainers.DockerNetwork) option {
 func WithPort(port string) option {
 	return func(opt *options) {
 		opt.port = port
+	}
+}
+
+func WithEnvVar(key, value string) option {
+	return func(opt *options) {
+		opt.extraEnvVars[key] = value
 	}
 }

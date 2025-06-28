@@ -18,98 +18,33 @@ const (
 	hostAlias = "postgres"
 )
 
-// Bochka is a test helper for managing a PostgreSQL container lifecycle.
-type Bochka struct {
+// PostgresService implements ContainerService for PostgreSQL
+type PostgresService struct {
 	Container testcontainers.Container
-	context.Context
-	options
-	t *testing.T
-
-	host    string
-	port    uint16
-	network *testcontainers.DockerNetwork
-}
-
-// HostAlias returns the network alias for the PostgreSQL container.
-func (b *Bochka) HostAlias() string {
-	return hostAlias
-}
-
-// NetworkName returns the name of the Docker network used by the container.
-func (b *Bochka) NetworkName() string {
-	return b.network.Name
-}
-
-// Host returns the host address of the PostgreSQL container.
-func (b *Bochka) Host() string {
-	return b.host
-}
-
-// Port returns the mapped port of the PostgreSQL container.
-func (b *Bochka) Port() uint16 {
-	return b.port
-}
-
-// User returns the username for the PostgreSQL instance.
-func (b *Bochka) User() string {
-	return login
-}
-
-// Password returns the password for the PostgreSQL instance.
-func (b *Bochka) Password() string {
-	return password
-}
-
-// DBName returns the database name for the PostgreSQL instance.
-func (b *Bochka) DBName() string {
-	return dbName
-}
-
-// Close terminates the PostgreSQL container.
-func (b *Bochka) Close() error {
-	return b.Container.Terminate(b.Context)
-}
-
-// New creates a new PostgreSQL test helper.
-func New(t *testing.T, ctx context.Context, settings ...option) *Bochka {
-	return &Bochka{
-		t:       t,
-		options: getOptions(settings),
-		Context: ctx,
-	}
+	host      string
+	port      uint16
+	network   *testcontainers.DockerNetwork
+	config    ContainerConfig
 }
 
 // Start starts the PostgreSQL container and sets up connection details. Returns error on failure.
-func (b *Bochka) Start() error {
-	t := b.t
-	t.Helper()
-
-	if b.options.image == "" {
-		b.options.image = "postgres"
-	}
-	if b.options.version == "" {
-		b.options.version = "17.5"
+func (p *PostgresService) Start(ctx context.Context) error {
+	envVars := map[string]string{
+		"POSTGRES_DB":       dbName,
+		"POSTGRES_USER":     login,
+		"POSTGRES_PASSWORD": password,
 	}
 
-	if b.network == nil {
-		var err error
-		b.network, err = NewNetwork(b.Context)
-		if err != nil {
-			return err
-		}
-	}
-
-	port := b.options.port
-	if port == "" {
-		port = "5433"
+	for env, val := range p.config.EnvVars {
+		envVars[env] = val
 	}
 
 	containerReq := testcontainers.ContainerRequest{
-		Image:        b.options.image + ":" + b.options.version,
+		Image:        p.config.Image + ":" + p.config.Version,
 		ExposedPorts: []string{"5432/tcp"},
 		HostConfigModifier: func(hostConfig *container.HostConfig) {
 			hostConfig.PortBindings = map[nat.Port][]nat.PortBinding{
-				"5432/tcp": {{HostIP: "", HostPort: port}},
+				"5432/tcp": {{HostIP: "", HostPort: faststrconv.Uint162String(p.Port())}},
 			}
 			hostConfig.AutoRemove = true
 		},
@@ -117,22 +52,16 @@ func (b *Bochka) Start() error {
 			wait.ForLog("database system is ready to accept connections"),
 			wait.ForListeningPort("5432/tcp"),
 		),
-		Env: map[string]string{
-			"POSTGRES_DB":       dbName,
-			"POSTGRES_USER":     login,
-			"POSTGRES_PASSWORD": password,
-		},
-		Networks: []string{b.network.Name},
+		Env:      envVars,
+		Networks: []string{p.network.Name},
 		NetworkAliases: map[string][]string{
-			b.network.Name: {hostAlias},
+			p.network.Name: {hostAlias},
 		},
 	}
 
-	t.Logf("Starting PostgreSQL container: image=%s, version=%s, host port=%s", b.options.image, b.options.version, port)
-
 	var err error
-	b.Container, err = testcontainers.GenericContainer(
-		b.Context,
+	p.Container, err = testcontainers.GenericContainer(
+		ctx,
 		testcontainers.GenericContainerRequest{
 			ContainerRequest: containerReq,
 			Started:          true,
@@ -141,23 +70,100 @@ func (b *Bochka) Start() error {
 		return err
 	}
 
-	b.host, err = b.Container.Host(b.Context)
+	p.host, err = p.Container.Host(ctx)
 	if err != nil {
 		return err
 	}
-
-	t.Logf("PostgreSQL host: %s", b.host)
 
 	var mappedPort nat.Port
-	mappedPort, err = b.Container.MappedPort(b.Context, "5432")
+	mappedPort, err = p.Container.MappedPort(ctx, "5432")
 	if err != nil {
 		return err
 	}
-	b.port, err = faststrconv.GetUint16(mappedPort.Port())
+	p.port, err = faststrconv.GetUint16(mappedPort.Port())
 	if err != nil {
 		return err
 	}
 
-	t.Logf("PostgreSQL port: %s", mappedPort.Port())
 	return nil
+}
+
+// Close terminates the PostgreSQL container.
+func (p *PostgresService) Close() error {
+	return p.Container.Terminate(context.Background())
+}
+
+// NetworkName returns the name of the Docker network used by the container.
+func (p *PostgresService) NetworkName() string {
+	return p.network.Name
+}
+
+// Host returns the host address of the PostgreSQL container.
+func (p *PostgresService) Host() string {
+	return p.host
+}
+
+// Port returns the mapped port of the PostgreSQL container.
+func (p *PostgresService) Port() uint16 {
+	return p.port
+}
+
+// HostAlias returns the network alias for the PostgreSQL container.
+func (p *PostgresService) HostAlias() string {
+	return hostAlias
+}
+
+// User returns the username for the PostgreSQL instance.
+func (p *PostgresService) User() string {
+	return login
+}
+
+// Password returns the password for the PostgreSQL instance.
+func (p *PostgresService) Password() string {
+	return password
+}
+
+// DBName returns the database name for the PostgreSQL instance.
+func (p *PostgresService) DBName() string {
+	return dbName
+}
+
+// NewPostgres creates a new PostgreSQL test helper.
+func NewPostgres(t *testing.T, ctx context.Context, settings ...option) *Bochka[*PostgresService] {
+	opts := options{
+		// default settings
+		image:   "postgres",
+		version: "17.5",
+		port:    "5433",
+	}
+
+	opts.applyOptions(settings)
+
+	network := opts.network
+	if network == nil {
+		var err error
+		network, err = NewNetwork(ctx)
+		if err != nil {
+			t.Fatalf("failed to create network: %v", err)
+		}
+	}
+
+	service := &PostgresService{
+		network: network,
+		config: ContainerConfig{
+			Image:    opts.image,
+			Version:  opts.version,
+			HostPort: opts.port,
+		},
+	}
+
+	bochka := &Bochka[*PostgresService]{
+		t:       t,
+		options: opts,
+		Context: ctx,
+		network: network,
+		service: service,
+	}
+
+	return bochka
 }
