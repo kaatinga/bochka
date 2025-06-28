@@ -2,6 +2,12 @@
 
 `bochka` is a Go package that streamlines your testing environment when working with Dockerized services. It provides helpers and primitives to initialize ready-to-use service containers within Docker, ideal for integration tests or any scenario where transient infrastructure is beneficial.
 
+## Prerequisites
+
+- **Go 1.24+**
+- **Docker** - Must be running and accessible
+- **Docker Compose** (optional) - For more complex multi-service setups
+
 ## Features
 - **Ephemeral Service Instances**: Quickly set up service containers (e.g., PostgreSQL, NATS, Redis, etc.) that last only for the duration of your tests.
 - **Generic Architecture**: Extensible design using Go generics and interfaces for easy addition of new services.
@@ -15,6 +21,38 @@
 
 ```bash
 go get -u github.com/kaatinga/bochka
+```
+
+## Quick Start
+
+Here's a minimal example to get you started:
+
+```go
+package main
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/kaatinga/bochka"
+)
+
+func TestQuickStart(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Create and start a PostgreSQL container
+	helper := bochka.NewPostgres(t, ctx)
+	err := helper.Start()
+	if err != nil {
+		t.Fatalf("failed to start container: %v", err)
+	}
+	defer helper.Close()
+
+	// Container is ready! Use helper.Service().Host() and helper.Service().Port() to connect
+	t.Logf("PostgreSQL running on %s:%d", helper.Service().Host(), helper.Service().Port())
+}
 ```
 
 ## Supported Services
@@ -41,14 +79,14 @@ func TestPostgresContainer(t *testing.T) {
 		bochka.WithPort("5555"), 
 		bochka.WithCustomImage("postgres", "17.5"),
 	)
-	err := bochka.StartPostgres(helper)
+	err := helper.Start()
 	if err != nil {
 		t.Fatalf("failed to start container: %v", err)
 	}
 	defer helper.Close()
 
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
-		bochka.User(helper), bochka.Password(helper), bochka.Host(helper), bochka.Port(helper), bochka.DBName(helper))
+		helper.Service().User(), helper.Service().Password(), helper.Service().Host(), helper.Service().Port(), helper.Service().DBName())
 	conn, err := pgx.Connect(ctx, connStr)
 	if err != nil {
 		t.Fatalf("failed to connect to postgres: %v", err)
@@ -65,10 +103,12 @@ package bochka_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/kaatinga/bochka"
+	"github.com/nats-io/nats.go"
 )
 
 func TestNatsContainer(t *testing.T) {
@@ -80,13 +120,20 @@ func TestNatsContainer(t *testing.T) {
 		bochka.WithCustomImage("docker.io/library/nats", "2-alpine"),
 		bochka.WithEnvVar("NATS_SERVER_NAME", "test-server"),
 	)
-	err := bochka.StartNats(helper)
+	err := helper.Start()
 	if err != nil {
 		t.Fatalf("failed to start NATS container: %v", err)
 	}
 	defer helper.Close()
 
-	// Connect to NATS using bochka.NatsHost(helper) and bochka.NatsPort(helper)
+	// Connect to NATS
+	nc, err := nats.Connect(fmt.Sprintf("nats://%s:%d", bochka.NatsHost(helper), bochka.NatsPort(helper)))
+	if err != nil {
+		t.Fatalf("failed to connect to NATS: %v", err)
+	}
+	defer nc.Close()
+
+	// Your NATS operations here...
 }
 ```
 
@@ -101,6 +148,7 @@ func TestMultipleServices(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create network: %v", err)
 	}
+	defer network.Remove(ctx)
 
 	// Create PostgreSQL container
 	postgres := bochka.NewPostgres(t, ctx,
@@ -115,12 +163,12 @@ func TestMultipleServices(t *testing.T) {
 	)
 
 	// Start both containers
-	if err := bochka.StartPostgres(postgres); err != nil {
+	if err := postgres.Start(); err != nil {
 		t.Fatalf("failed to start postgres: %v", err)
 	}
 	defer postgres.Close()
 
-	if err := bochka.StartNats(nats); err != nil {
+	if err := nats.Start(); err != nil {
 		t.Fatalf("failed to start nats: %v", err)
 	}
 	defer nats.Close()
@@ -134,20 +182,20 @@ func TestMultipleServices(t *testing.T) {
 ### Generic Container Management
 - `func NewPostgres(t *testing.T, ctx context.Context, opts ...option) *Bochka[*PostgresService]`
 - `func NewNats(t *testing.T, ctx context.Context, opts ...option) *Bochka[*NatsService]`
+- `func (b *Bochka[T]) Start() error`: Starts the container.
 - `func (b *Bochka[T]) Close() error`: Stops and removes the container.
 - `func (b *Bochka[T]) NetworkName() string`: Returns the name of the Docker network.
+- `func (b *Bochka[T]) Service() T`: Returns the underlying container service.
 
 ### PostgreSQL API
-- `func StartPostgres(b *Bochka[*PostgresService]) error`: Starts the PostgreSQL container.
-- `func Host(b *Bochka[*PostgresService]) string`: Returns the host address.
-- `func Port(b *Bochka[*PostgresService]) uint16`: Returns the mapped port.
-- `func User(b *Bochka[*PostgresService]) string`: Returns the username (default: "test").
-- `func Password(b *Bochka[*PostgresService]) string`: Returns the password (default: "12345").
-- `func DBName(b *Bochka[*PostgresService]) string`: Returns the database name (default: "testdb").
-- `func HostAlias(b *Bochka[*PostgresService]) string`: Returns the network alias.
+- `func (p *PostgresService) Host() string`: Returns the host address.
+- `func (p *PostgresService) Port() uint16`: Returns the mapped port.
+- `func (p *PostgresService) User() string`: Returns the username (default: "test").
+- `func (p *PostgresService) Password() string`: Returns the password (default: "12345").
+- `func (p *PostgresService) DBName() string`: Returns the database name (default: "testdb").
+- `func (p *PostgresService) HostAlias() string`: Returns the network alias.
 
 ### NATS API
-- `func StartNats(b *Bochka[*NatsService]) error`: Starts the NATS container.
 - `func NatsHost(b *Bochka[*NatsService]) string`: Returns the host address.
 - `func NatsPort(b *Bochka[*NatsService]) uint16`: Returns the mapped port.
 - `func NatsHostAlias(b *Bochka[*NatsService]) string`: Returns the network alias.
@@ -170,9 +218,13 @@ The package uses a generic architecture with the `ContainerService` interface. T
 type ContainerService interface {
 	Start(ctx context.Context) error
 	Close() error
-	NetworkName() string
 	Host() string
 	Port() uint16
+	HostAlias() string
+	User() string
+	Password() string
+	DBName() string
+	GetContainer() testcontainers.Container
 }
 ```
 
@@ -181,10 +233,58 @@ type ContainerService interface {
 3. Add constructor and starter functions following the pattern:
 ```go
 func NewYourService(t *testing.T, ctx context.Context, settings ...option) *Bochka[*YourService]
-func StartYourService(b *Bochka[*YourService]) error
 ```
 
 4. Add service-specific helper functions as needed.
 
+## Troubleshooting
+
+### Common Issues
+
+**Docker not running**
+```
+Error: failed to start container: context deadline exceeded
+```
+**Solution**: Ensure Docker is running and accessible. Check with `docker ps`.
+
+**Port already in use**
+```
+Error: failed to start container: port already allocated
+```
+**Solution**: Use `WithPort()` to specify a different port or ensure no other containers are using the same port.
+
+**Image not found**
+```
+Error: failed to start container: image not found
+```
+**Solution**: Check the image name and version. Use `docker pull <image>:<version>` to pre-download the image.
+
+**Context timeout**
+```
+Error: context deadline exceeded
+```
+**Solution**: Increase the context timeout or check if Docker has enough resources.
+
+### Performance Tips
+
+- Use specific image versions instead of `latest` for reproducible tests
+- Reuse networks when running multiple services
+- Set appropriate context timeouts based on your system's performance
+- Consider using `WithCustomImage()` to use lighter Alpine-based images
+
+## Comparison with Other Tools
+
+| Feature | bochka | testcontainers-go | dockertest |
+|---------|--------|-------------------|------------|
+| Go Generics | ✅ | ❌ | ❌ |
+| Type Safety | ✅ | ⚠️ | ❌ |
+| Ease of Use | ✅ | ⚠️ | ✅ |
+| Extensibility | ✅ | ✅ | ⚠️ |
+| Network Support | ✅ | ✅ | ❌ |
+
 ## Contributing
 If you would like to contribute to `bochka`, please raise an issue or submit a pull request on our GitHub repository.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
