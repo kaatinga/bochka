@@ -12,7 +12,6 @@ import (
 type ContainerService interface {
 	Start(ctx context.Context) error // Start is not supposed to be used. Use bochka.Start()
 	Close() error
-	NetworkName() string
 	Host() string
 	Port() uint16
 	HostAlias() string
