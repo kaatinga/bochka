@@ -118,7 +118,7 @@ func TestNatsContainer(t *testing.T) {
 	helper := bochka.NewNats(t, ctx,
 		bochka.WithPort("4222"),
 		bochka.WithCustomImage("docker.io/library/nats", "2-alpine"),
-		bochka.WithEnvVar("NATS_SERVER_NAME", "test-server"),
+		bochka.WithEnvVars(map[string]string{"NATS_SERVER_NAME": "test-server"}),
 	)
 	err := helper.Start()
 	if err != nil {
@@ -127,7 +127,7 @@ func TestNatsContainer(t *testing.T) {
 	defer helper.Close()
 
 	// Connect to NATS
-	nc, err := nats.Connect(fmt.Sprintf("nats://%s:%d", bochka.NatsHost(helper), bochka.NatsPort(helper)))
+	nc, err := nats.Connect(fmt.Sprintf("nats://%s:%d", helper.Service().Host(), helper.Service().Port()))
 	if err != nil {
 		t.Fatalf("failed to connect to NATS: %v", err)
 	}
@@ -196,15 +196,15 @@ func TestMultipleServices(t *testing.T) {
 - `func (p *PostgresService) HostAlias() string`: Returns the network alias.
 
 ### NATS API
-- `func NatsHost(b *Bochka[*NatsService]) string`: Returns the host address.
-- `func NatsPort(b *Bochka[*NatsService]) uint16`: Returns the mapped port.
-- `func NatsHostAlias(b *Bochka[*NatsService]) string`: Returns the network alias.
+- `func (n *NatsService) Host() string`: Returns the host address.
+- `func (n *NatsService) Port() uint16`: Returns the mapped port.
+- `func (n *NatsService) HostAlias() string`: Returns the network alias.
 
 ### Options
 - `WithPort(port string)`: Set the host port for the service.
 - `WithCustomImage(image, version string)`: Set the Docker image and version.
 - `WithNetwork(network *testcontainers.DockerNetwork)`: Attach to a custom Docker network.
-- `WithEnvVar(key, value string)`: Add custom environment variables.
+- `WithEnvVars(vars map[string]string)`: Add custom environment variables.
 
 ### Network Management
 - `func NewNetwork(ctx context.Context) (*testcontainers.DockerNetwork, error)`: Creates a new Docker network.
