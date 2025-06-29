@@ -172,18 +172,3 @@ func NewNats(t *testing.T, ctx context.Context, settings ...option) *Bochka[*Nat
 
 	return bochka
 }
-
-// NatsHostAlias returns the network alias for the NATS container.
-func NatsHostAlias(b *Bochka[*NatsService]) string {
-	return b.service.HostAlias()
-}
-
-// NatsHost returns the host address of the NATS container.
-func NatsHost(b *Bochka[*NatsService]) string {
-	return b.service.Host()
-}
-
-// NatsPort returns the mapped port of the NATS container.
-func NatsPort(b *Bochka[*NatsService]) uint16 {
-	return b.service.Port()
-}

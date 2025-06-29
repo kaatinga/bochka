@@ -18,9 +18,9 @@ func Test_NatsService(t *testing.T) {
 	defer helper.Close()
 
 	// Verify connection details
-	host := NatsHost(helper)
-	port := NatsPort(helper)
-	alias := NatsHostAlias(helper)
+	host := helper.Service().Host()
+	port := helper.Service().Port()
+	alias := helper.Service().HostAlias()
 
 	if host == "" {
 		t.Error("expected non-empty host")
@@ -53,5 +53,5 @@ func TestNatsWithCustomEnvVars(t *testing.T) {
 	defer helper.Close()
 
 	t.Logf("NATS container started with custom environment variables")
-	t.Logf("NATS connection: %s:%d", NatsHost(helper), NatsPort(helper))
+	t.Logf("NATS connection: %s:%d", helper.Service().Host(), helper.Service().Port())
 }
