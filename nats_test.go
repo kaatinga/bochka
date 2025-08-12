@@ -2,8 +2,11 @@ package bochka
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
+
+	"github.com/nats-io/nats.go"
 )
 
 func Test_NatsService(t *testing.T) {
@@ -30,6 +33,18 @@ func Test_NatsService(t *testing.T) {
 	}
 	if alias != "nats" {
 		t.Errorf("expected alias 'nats', got '%s'", alias)
+	}
+
+	// Connect to NATS server
+	natsURL := "nats://" + host + ":" + strconv.Itoa(int(port))
+	nc, err := nats.Connect(natsURL)
+	if err != nil {
+		t.Fatalf("failed to connect to NATS: %v", err)
+	}
+	defer nc.Close()
+
+	if !nc.IsConnected() {
+		t.Error("NATS client is not connected")
 	}
 
 	t.Logf("NATS container started successfully")
