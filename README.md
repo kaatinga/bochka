@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-- **Go 1.24+**
+- **Go 1.25**
 - **Docker** - Must be running and accessible
 - **Docker Compose** (optional) - For more complex multi-service setups
 
