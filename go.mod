@@ -1,18 +1,18 @@
 module github.com/kaatinga/bochka
 
-go 1.24
+go 1.25
 
 require (
-	github.com/docker/docker v28.3.3+incompatible
+	github.com/docker/docker v28.5.1+incompatible
 	github.com/docker/go-connections v0.6.0
-	github.com/jackc/pgx/v5 v5.7.5
+	github.com/jackc/pgx/v5 v5.7.6
 	github.com/kaatinga/strconv v1.3.0
-	github.com/nats-io/nats.go v1.44.0
-	github.com/testcontainers/testcontainers-go v0.38.0
+	github.com/nats-io/nats.go v1.47.0
+	github.com/testcontainers/testcontainers-go v0.39.0
 )
 
 require (
-	dario.cat/mergo v1.0.1 // indirect
+	dario.cat/mergo v1.0.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -29,7 +29,6 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
@@ -51,7 +50,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
-	github.com/shirou/gopsutil/v4 v4.25.5 // indirect
+	github.com/shirou/gopsutil/v4 v4.25.6 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
@@ -66,7 +65,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
