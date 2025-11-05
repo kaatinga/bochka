@@ -3,7 +3,7 @@ module github.com/kaatinga/bochka
 go 1.25
 
 require (
-	github.com/docker/docker v28.5.1+incompatible
+	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.6.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/kaatinga/strconv v1.3.0
