@@ -78,6 +78,7 @@ func TestPostgresContainer(t *testing.T) {
 	helper := bochka.NewPostgres(t, ctx, 
 		bochka.WithPort("5555"), 
 		bochka.WithCustomImage("postgres", "17.5"),
+		bochka.WithEnvVars(map[string]string{"POSTGRES_INITDB_ARGS": "--encoding=UTF8"}),
 	)
 	err := helper.Start()
 	if err != nil {
@@ -180,12 +181,13 @@ func TestMultipleServices(t *testing.T) {
 ## API
 
 ### Generic Container Management
-- `func NewPostgres(t *testing.T, ctx context.Context, opts ...option) *Bochka[*PostgresService]`
-- `func NewNats(t *testing.T, ctx context.Context, opts ...option) *Bochka[*NatsService]`
+- `func NewPostgres(t *testing.T, ctx context.Context, opts ...option) *Bochka[*PostgresService]`: Creates a new PostgreSQL test helper.
+- `func NewNats(t *testing.T, ctx context.Context, opts ...option) *Bochka[*NatsService]`: Creates a new NATS test helper.
 - `func (b *Bochka[T]) Start() error`: Starts the container.
 - `func (b *Bochka[T]) Close() error`: Stops and removes the container.
-- `func (b *Bochka[T]) NetworkName() string`: Returns the name of the Docker network.
+- `func (b *Bochka[T]) NetworkName() string`: Returns the name of the Docker network used by the container.
 - `func (b *Bochka[T]) Service() T`: Returns the underlying container service.
+- `func (b *Bochka[T]) PrintLogs()`: Prints the container logs to the test output.
 
 ### PostgreSQL API
 - `func (p *PostgresService) Host() string`: Returns the host address.
@@ -201,13 +203,13 @@ func TestMultipleServices(t *testing.T) {
 - `func (n *NatsService) HostAlias() string`: Returns the network alias.
 
 ### Options
-- `WithPort(port string)`: Set the host port for the service.
-- `WithCustomImage(image, version string)`: Set the Docker image and version.
-- `WithNetwork(network *testcontainers.DockerNetwork)`: Attach to a custom Docker network.
-- `WithEnvVars(vars map[string]string)`: Add custom environment variables.
+- `WithPort(port string)`: Sets the host port for the container port binding.
+- `WithCustomImage(image, version string)`: Sets a custom Docker image and version for the container.
+- `WithNetwork(network *testcontainers.DockerNetwork)`: Sets a custom Docker network for the container to join.
+- `WithEnvVars(vars map[string]string)`: Adds custom environment variables to the container. Multiple calls to `WithEnvVars` will merge the environment variables.
 
 ### Network Management
-- `func NewNetwork(ctx context.Context) (*testcontainers.DockerNetwork, error)`: Creates a new Docker network.
+- `func NewNetwork(ctx context.Context) (*testcontainers.DockerNetwork, error)`: Creates a new Docker network for container communication.
 
 ## Extending for Other Services
 
@@ -218,17 +220,12 @@ The package uses a generic architecture with the `ContainerService` interface. T
 type ContainerService interface {
 	Start(ctx context.Context) error
 	Close() error
-	Host() string
-	Port() uint16
 	HostAlias() string
-	User() string
-	Password() string
-	DBName() string
 	GetContainer() testcontainers.Container
 }
 ```
 
-2. Create a service struct and implement the interface methods.
+2. Create a service struct and implement the interface methods. You may also add service-specific methods like `Host()`, `Port()`, `User()`, `Password()`, and `DBName()` as needed (though these are not required by the interface).
 
 3. Add constructor and starter functions following the pattern:
 ```go

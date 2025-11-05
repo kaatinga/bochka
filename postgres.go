@@ -44,7 +44,7 @@ func (p *PostgresService) Start(ctx context.Context) error {
 		ExposedPorts: []string{"5432/tcp"},
 		HostConfigModifier: func(hostConfig *container.HostConfig) {
 			hostConfig.PortBindings = map[nat.Port][]nat.PortBinding{
-				"5432/tcp": {{HostIP: "", HostPort: faststrconv.Uint162String(p.Port())}},
+				"5432/tcp": {{HostIP: "", HostPort: p.config.HostPort}},
 			}
 			hostConfig.AutoRemove = true
 		},
@@ -159,6 +159,7 @@ func NewPostgres(t *testing.T, ctx context.Context, settings ...option) *Bochka[
 			Image:    opts.image,
 			Version:  opts.version,
 			HostPort: opts.port,
+			EnvVars:  opts.extraEnvVars,
 		},
 	}
 

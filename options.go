@@ -1,8 +1,6 @@
 package bochka
 
 import (
-	"time"
-
 	"github.com/testcontainers/testcontainers-go"
 )
 
@@ -12,19 +10,18 @@ type options struct {
 	image        string
 	version      string
 	port         string // Host port for container
-	timeout      time.Duration
 }
 
 type option func(*options)
 
 func (o *options) applyOptions(opts []option) {
-	o.timeout = 30 * time.Second
 	o.extraEnvVars = make(map[string]string)
 	for _, opt := range opts {
 		opt(o)
 	}
 }
 
+// WithCustomImage sets a custom Docker image and version for the container.
 func WithCustomImage(image, version string) option {
 	return func(opt *options) {
 		opt.image = image
@@ -32,18 +29,22 @@ func WithCustomImage(image, version string) option {
 	}
 }
 
+// WithNetwork sets a custom Docker network for the container to join.
 func WithNetwork(network *testcontainers.DockerNetwork) option {
 	return func(opt *options) {
 		opt.network = network
 	}
 }
 
+// WithPort sets the host port for the container port binding.
 func WithPort(port string) option {
 	return func(opt *options) {
 		opt.port = port
 	}
 }
 
+// WithEnvVars adds custom environment variables to the container.
+// Multiple calls to WithEnvVars will merge the environment variables.
 func WithEnvVars(vars map[string]string) option {
 	return func(opt *options) {
 		for k, v := range vars {

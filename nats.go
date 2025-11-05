@@ -52,7 +52,7 @@ func (n *NatsService) Start(ctx context.Context) error {
 				natsExposedPort: {
 					{
 						HostIP:   "0.0.0.0",
-						HostPort: faststrconv.Uint162String(n.Port()),
+						HostPort: n.config.HostPort,
 					},
 				},
 			}
@@ -113,18 +113,6 @@ func (n *NatsService) Port() uint16 {
 // HostAlias returns the network alias for the NATS container.
 func (n *NatsService) HostAlias() string {
 	return natsHostAlias
-}
-
-func (n *NatsService) User() string {
-	return ""
-}
-
-func (n *NatsService) Password() string {
-	return ""
-}
-
-func (n *NatsService) DBName() string {
-	return ""
 }
 
 // GetContainer returns the underlying container service

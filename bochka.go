@@ -10,14 +10,9 @@ import (
 
 // ContainerService defines the interface that any container service must implement
 type ContainerService interface {
-	Start(ctx context.Context) error // Start is not supposed to be used. Use bochka.Start()
+	Start(ctx context.Context) error // Start is not supposed to be used. Use Bochka.Start()
 	Close() error
-	Host() string
-	Port() uint16
 	HostAlias() string
-	User() string
-	Password() string
-	DBName() string
 	GetContainer() testcontainers.Container
 }
 
