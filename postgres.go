@@ -21,10 +21,10 @@ const (
 // PostgresService implements ContainerService for PostgreSQL
 type PostgresService struct {
 	Container testcontainers.Container
-	host      string
-	port      uint16
 	network   *testcontainers.DockerNetwork
 	config    ContainerConfig
+	host      string
+	port      uint16
 }
 
 // Start starts the PostgreSQL container and sets up connection details. Returns error on failure.

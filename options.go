@@ -7,12 +7,12 @@ import (
 )
 
 type options struct {
-	timeout      time.Duration
+	network      *testcontainers.DockerNetwork
+	extraEnvVars map[string]string
 	image        string
 	version      string
-	network      *testcontainers.DockerNetwork
 	port         string // Host port for container
-	extraEnvVars map[string]string
+	timeout      time.Duration
 }
 
 type option func(*options)

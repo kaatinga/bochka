@@ -29,35 +29,57 @@ func Test_PostgreDatabase(t *testing.T) {
 	)
 	conn, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
-		helper.Close()
+		if closeErr := helper.Close(); closeErr != nil {
+			t.Logf("failed to close helper: %v", closeErr)
+		}
 		t.Fatalf("failed to connect to postgres: %v", err)
 	}
 	_, err = conn.Exec(context.Background(), `CREATE TABLE IF NOT EXISTS test_table (id SERIAL PRIMARY KEY, name TEXT)`)
 	if err != nil {
-		conn.Close(context.Background())
-		helper.Close()
+		if closeErr := conn.Close(context.Background()); closeErr != nil {
+			t.Logf("failed to close conn: %v", closeErr)
+		}
+		if closeErr := helper.Close(); closeErr != nil {
+			t.Logf("failed to close helper: %v", closeErr)
+		}
 		t.Fatalf("failed to create table: %v", err)
 	}
 	_, err = conn.Exec(context.Background(), `INSERT INTO test_table (name) VALUES ($1)`, "testname")
 	if err != nil {
-		conn.Close(context.Background())
-		helper.Close()
+		if closeErr := conn.Close(context.Background()); closeErr != nil {
+			t.Logf("failed to close conn: %v", closeErr)
+		}
+		if closeErr := helper.Close(); closeErr != nil {
+			t.Logf("failed to close helper: %v", closeErr)
+		}
 		t.Fatalf("failed to insert row: %v", err)
 	}
 	var name string
 	err = conn.QueryRow(context.Background(), `SELECT name FROM test_table WHERE name=$1`, "testname").Scan(&name)
 	if err != nil {
-		conn.Close(context.Background())
-		helper.Close()
+		if closeErr := conn.Close(context.Background()); closeErr != nil {
+			t.Logf("failed to close conn: %v", closeErr)
+		}
+		if closeErr := helper.Close(); closeErr != nil {
+			t.Logf("failed to close helper: %v", closeErr)
+		}
 		t.Fatalf("failed to query row: %v", err)
 	}
 	if name != "testname" {
-		conn.Close(context.Background())
-		helper.Close()
+		if closeErr := conn.Close(context.Background()); closeErr != nil {
+			t.Logf("failed to close conn: %v", closeErr)
+		}
+		if closeErr := helper.Close(); closeErr != nil {
+			t.Errorf("failed to close helper: %v", closeErr)
+		}
 		t.Errorf("expected name 'testname', got '%s'", name)
 	}
-	conn.Close(context.Background())
-	helper.Close()
+	if closeErr := conn.Close(context.Background()); closeErr != nil {
+		t.Errorf("failed to close conn: %v", closeErr)
+	}
+	if closeErr := helper.Close(); closeErr != nil {
+		t.Logf("failed to close helper: %v", closeErr)
+	}
 
 	// Start container with custom port and run pgx query
 	helper = NewPostgres(t, ctx, WithPort("5555"))
@@ -69,32 +91,54 @@ func Test_PostgreDatabase(t *testing.T) {
 	connStr = fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", helper.Service().User(), helper.Service().Password(), helper.Service().Host(), helper.Service().Port(), helper.Service().DBName())
 	conn, err = pgx.Connect(context.Background(), connStr)
 	if err != nil {
-		helper.Close()
+		if closeErr := helper.Close(); closeErr != nil {
+			t.Logf("failed to close helper: %v", closeErr)
+		}
 		t.Fatalf("failed to connect to postgres: %v", err)
 	}
 	_, err = conn.Exec(context.Background(), `CREATE TABLE IF NOT EXISTS test_table2 (id SERIAL PRIMARY KEY, name TEXT)`)
 	if err != nil {
-		conn.Close(context.Background())
-		helper.Close()
+		if closeErr := conn.Close(context.Background()); closeErr != nil {
+			t.Errorf("failed to close conn: %v", closeErr)
+		}
+		if closeErr := helper.Close(); closeErr != nil {
+			t.Errorf("failed to close helper: %v", closeErr)
+		}
 		t.Fatalf("failed to create table: %v", err)
 	}
 	_, err = conn.Exec(context.Background(), `INSERT INTO test_table2 (name) VALUES ($1)`, "customport")
 	if err != nil {
-		conn.Close(context.Background())
-		helper.Close()
+		if closeErr := conn.Close(context.Background()); closeErr != nil {
+			t.Errorf("failed to close conn: %v", closeErr)
+		}
+		if closeErr := helper.Close(); closeErr != nil {
+			t.Errorf("failed to close helper: %v", closeErr)
+		}
 		t.Fatalf("failed to insert row: %v", err)
 	}
 	err = conn.QueryRow(context.Background(), `SELECT name FROM test_table2 WHERE name=$1`, "customport").Scan(&name)
 	if err != nil {
-		conn.Close(context.Background())
-		helper.Close()
+		if closeErr := conn.Close(context.Background()); closeErr != nil {
+			t.Errorf("failed to close conn: %v", closeErr)
+		}
+		if closeErr := helper.Close(); closeErr != nil {
+			t.Errorf("failed to close helper: %v", closeErr)
+		}
 		t.Fatalf("failed to query row: %v", err)
 	}
 	if name != "customport" {
-		conn.Close(context.Background())
-		helper.Close()
+		if closeErr := conn.Close(context.Background()); closeErr != nil {
+			t.Errorf("failed to close conn: %v", closeErr)
+		}
+		if closeErr := helper.Close(); closeErr != nil {
+			t.Errorf("failed to close helper: %v", closeErr)
+		}
 		t.Errorf("expected name 'customport', got '%s'", name)
 	}
-	conn.Close(context.Background())
-	helper.Close()
+	if closeErr := conn.Close(context.Background()); closeErr != nil {
+		t.Errorf("failed to close conn: %v", closeErr)
+	}
+	if closeErr := helper.Close(); closeErr != nil {
+		t.Logf("failed to close helper: %v", closeErr)
+	}
 }

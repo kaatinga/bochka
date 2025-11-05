@@ -21,10 +21,10 @@ const (
 // NatsService implements ContainerService for NATS
 type NatsService struct {
 	Container testcontainers.Container
-	host      string
-	port      uint16
 	network   *testcontainers.DockerNetwork
 	config    ContainerConfig
+	host      string
+	port      uint16
 }
 
 // Start starts the NATS container and sets up connection details. Returns error on failure.

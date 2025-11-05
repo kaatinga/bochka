@@ -18,7 +18,11 @@ func Test_NatsService(t *testing.T) {
 	if err := helper.Start(); err != nil {
 		t.Fatalf("failed to start NATS container: %v", err)
 	}
-	defer helper.Close()
+	defer func() {
+		if err := helper.Close(); err != nil {
+			t.Errorf("failed to close helper: %v", err)
+		}
+	}()
 
 	// Verify connection details
 	host := helper.Service().Host()
@@ -65,7 +69,11 @@ func TestNatsWithCustomEnvVars(t *testing.T) {
 	if err := helper.Start(); err != nil {
 		t.Fatalf("failed to start NATS container: %v", err)
 	}
-	defer helper.Close()
+	defer func() {
+		if err := helper.Close(); err != nil {
+			t.Errorf("failed to close helper: %v", err)
+		}
+	}()
 
 	t.Logf("NATS container started with custom environment variables")
 	t.Logf("NATS connection: %s:%d", helper.Service().Host(), helper.Service().Port())

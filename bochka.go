@@ -23,12 +23,12 @@ type ContainerService interface {
 
 // ContainerConfig holds common configuration for any container
 type ContainerConfig struct {
+	EnvVars      map[string]string
 	Image        string
 	Version      string
-	ExposedPorts []string
-	EnvVars      map[string]string
 	NetworkAlias string
 	HostPort     string
+	ExposedPorts []string
 }
 
 // Bochka is a generic test helper for managing container lifecycles.
@@ -66,7 +66,11 @@ func (b *Bochka[T]) PrintLogs() {
 		return
 	}
 
-	defer logReader.Close()
+	defer func() {
+		if err := logReader.Close(); err != nil {
+			b.t.Errorf("failed to close log reader: %v", err)
+		}
+	}()
 
 	logs, err := io.ReadAll(logReader)
 	if err != nil {
