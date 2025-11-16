@@ -133,6 +133,10 @@ func (p *PostgresService) GetContainer() testcontainers.Container {
 	return p.Container
 }
 
+func (p *PostgresService) DSN() string {
+	return "postgres://" + p.User() + ":" + p.Password() + "@" + p.Host() + ":" + faststrconv.Uint162String(p.Port()) + "/" + p.DBName()
+}
+
 // NewPostgres creates a new PostgreSQL test helper.
 func NewPostgres(t *testing.T, ctx context.Context, settings ...option) *Bochka[*PostgresService] {
 	opts := options{
