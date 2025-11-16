@@ -1,3 +1,5 @@
+[![Tests and linter](https://github.com/kaatinga/bochka/actions/workflows/golang_ci.yml/badge.svg)](https://github.com/kaatinga/bochka/actions/workflows/golang_ci.yml)
+
 # bochka for Golang
 
 `bochka` is a Go package that streamlines your testing environment when working with Dockerized services. It provides helpers and primitives to initialize ready-to-use service containers within Docker, ideal for integration tests or any scenario where transient infrastructure is beneficial.
