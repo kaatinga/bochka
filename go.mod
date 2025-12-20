@@ -7,7 +7,7 @@ require (
 	github.com/docker/go-connections v0.6.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/kaatinga/strconv v1.3.0
-	github.com/nats-io/nats.go v1.47.0
+	github.com/nats-io/nats.go v1.48.0
 	github.com/testcontainers/testcontainers-go v0.40.0
 )
 
