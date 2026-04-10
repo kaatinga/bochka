@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	faststrconv "github.com/kaatinga/strconv"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -16,6 +16,11 @@ const (
 	postgresPassword  = "12345"
 	postgresDBName    = "testdb"
 	postgresHostAlias = "postgres"
+	postgresPort      = "5432"
+)
+
+var (
+	postgresExposedPort network.Port
 )
 
 // PostgresService implements ContainerService for PostgreSQL
@@ -43,8 +48,8 @@ func (p *PostgresService) Start(ctx context.Context) error {
 		Image:        p.config.Image + ":" + p.config.Version,
 		ExposedPorts: []string{"5432/tcp"},
 		HostConfigModifier: func(hostConfig *container.HostConfig) {
-			hostConfig.PortBindings = map[nat.Port][]nat.PortBinding{
-				"5432/tcp": {{HostIP: "", HostPort: p.config.HostPort}},
+			hostConfig.PortBindings = network.PortMap{
+				postgresExposedPort: {{HostIP: anyIP, HostPort: p.config.HostPort}},
 			}
 			hostConfig.AutoRemove = true
 		},
@@ -75,8 +80,7 @@ func (p *PostgresService) Start(ctx context.Context) error {
 		return err
 	}
 
-	var mappedPort nat.Port
-	mappedPort, err = p.Container.MappedPort(ctx, "5432")
+	mappedPort, err := p.Container.MappedPort(ctx, "5432")
 	if err != nil {
 		return err
 	}

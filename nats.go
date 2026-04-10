@@ -5,17 +5,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	faststrconv "github.com/kaatinga/strconv"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 const (
-	natsHostAlias   = "nats"
-	natsPort        = "4222"
-	natsExposedPort = "4222/tcp"
+	natsHostAlias = "nats"
+	natsPort      = "4222"
+)
+
+var (
+	natsExposedPort network.Port
 )
 
 // NatsService implements ContainerService for NATS
@@ -37,21 +40,21 @@ func (n *NatsService) Start(ctx context.Context) error {
 	containerReq := testcontainers.ContainerRequest{
 		Image:        n.config.Image + ":" + n.config.Version,
 		Cmd:          []string{"nats-server", "-js"},
-		ExposedPorts: []string{natsExposedPort},
+		ExposedPorts: []string{natsExposedPort.String()},
 		Env:          envVars,
 		WaitingFor: wait.ForAll(
 			wait.ForLog("Server is ready").WithStartupTimeout(30*time.Second),
-			wait.ForListeningPort(natsExposedPort),
+			wait.ForListeningPort(natsExposedPort.String()),
 		),
 		Networks: []string{n.network.Name},
 		NetworkAliases: map[string][]string{
 			n.network.Name: {natsHostAlias},
 		},
 		HostConfigModifier: func(hostConfig *container.HostConfig) {
-			hostConfig.PortBindings = map[nat.Port][]nat.PortBinding{
+			hostConfig.PortBindings = network.PortMap{
 				natsExposedPort: {
 					{
-						HostIP:   "0.0.0.0",
+						HostIP:   anyIP,
 						HostPort: n.config.HostPort,
 					},
 				},
@@ -76,8 +79,7 @@ func (n *NatsService) Start(ctx context.Context) error {
 		return err
 	}
 
-	var mappedPort nat.Port
-	mappedPort, err = n.Container.MappedPort(ctx, natsPort)
+	mappedPort, err := n.Container.MappedPort(ctx, natsPort)
 	if err != nil {
 		return err
 	}
