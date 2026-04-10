@@ -54,7 +54,7 @@ func (n *NatsService) Start(ctx context.Context) error {
 			hostConfig.PortBindings = network.PortMap{
 				natsExposedPort: {
 					{
-						HostIP:   anyIP,
+						HostIP:   AnyIP,
 						HostPort: n.config.HostPort,
 					},
 				},

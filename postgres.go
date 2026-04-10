@@ -49,7 +49,7 @@ func (p *PostgresService) Start(ctx context.Context) error {
 		ExposedPorts: []string{"5432/tcp"},
 		HostConfigModifier: func(hostConfig *container.HostConfig) {
 			hostConfig.PortBindings = network.PortMap{
-				postgresExposedPort: {{HostIP: anyIP, HostPort: p.config.HostPort}},
+				postgresExposedPort: {{HostIP: AnyIP, HostPort: p.config.HostPort}},
 			}
 			hostConfig.AutoRemove = true
 		},

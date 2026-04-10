@@ -8,14 +8,14 @@ import (
 )
 
 var (
-	anyIP netip.Addr
+	AnyIP netip.Addr
 )
 
 func init() {
 	natsExposedPort, _ = network.ParsePort(natsPort + "/tcp")
 	postgresExposedPort, _ = network.ParsePort(postgresPort + "/tcp")
-	anyIP, _ = netip.ParseAddr("0.0.0.0")
+	AnyIP, _ = netip.ParseAddr("0.0.0.0")
 	log.Println(natsExposedPort)
 	log.Println(postgresExposedPort)
-	log.Println(anyIP)
+	log.Println(AnyIP)
 }
