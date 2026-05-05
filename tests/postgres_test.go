@@ -1,4 +1,4 @@
-package bochka
+package bochka_test
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/kaatinga/bochka"
 )
 
 func Test_PostgreDatabase(t *testing.T) {
@@ -14,7 +16,7 @@ func Test_PostgreDatabase(t *testing.T) {
 	defer cancel()
 
 	// Start container with default port and run pgx query
-	helper := NewPostgres(t, ctx)
+	helper := bochka.NewPostgres(t, ctx)
 	if err := helper.Start(); err != nil {
 		t.Fatalf("failed to start container: %v", err)
 	}
@@ -82,7 +84,7 @@ func Test_PostgreDatabase(t *testing.T) {
 	}
 
 	// Start container with custom port and run pgx query
-	helper = NewPostgres(t, ctx, WithPort("5555"))
+	helper = bochka.NewPostgres(t, ctx, bochka.WithPort("5555"))
 	err = helper.Service().Start(ctx)
 	if err != nil {
 		t.Fatalf("failed to start container with custom port: %v", err)
