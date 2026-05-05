@@ -25,6 +25,7 @@ jobs:
           cache: true
           cache-dependency-path: |
             go.sum
+            tests/go.sum
             go.work.sum
 
       - name: Verify dependencies
@@ -66,6 +67,9 @@ jobs:
 
       - name: Build check
         run: go build ./...
+
+      - name: Integration tests
+        run: cd tests && go mod verify && go test -race ./...
 
       - name: Cache gosec binary
         uses: actions/cache@v4
