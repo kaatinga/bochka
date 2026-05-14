@@ -16,8 +16,4 @@ func init() {
 	postgresExposedPort, _ = network.ParsePort(postgresPort + "/tcp")
 	redisExposedPort, _ = network.ParsePort(redisPort + "/tcp")
 	AnyIP, _ = netip.ParseAddr("0.0.0.0")
-	log.Println(natsExposedPort)
-	log.Println(postgresExposedPort)
-	log.Println(redisExposedPort)
-	log.Println(AnyIP)
 }
