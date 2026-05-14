@@ -1,7 +1,6 @@
 package bochka
 
 import (
-	"log"
 	"net/netip"
 
 	"github.com/moby/moby/api/types/network"
