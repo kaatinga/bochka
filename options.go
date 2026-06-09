@@ -1,6 +1,8 @@
 package bochka
 
 import (
+	"maps"
+
 	"github.com/testcontainers/testcontainers-go"
 )
 
@@ -47,8 +49,6 @@ func WithPort(port string) option {
 // Multiple calls to WithEnvVars will merge the environment variables.
 func WithEnvVars(vars map[string]string) option {
 	return func(opt *options) {
-		for k, v := range vars {
-			opt.extraEnvVars[k] = v
-		}
+		maps.Copy(opt.extraEnvVars, vars)
 	}
 }

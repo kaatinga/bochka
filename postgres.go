@@ -2,6 +2,7 @@ package bochka
 
 import (
 	"context"
+	"maps"
 	"testing"
 
 	faststrconv "github.com/kaatinga/strconv"
@@ -40,9 +41,7 @@ func (p *PostgresService) Start(ctx context.Context) error {
 		"POSTGRES_PASSWORD": postgresPassword,
 	}
 
-	for env, val := range p.config.EnvVars {
-		envVars[env] = val
-	}
+	maps.Copy(envVars, p.config.EnvVars)
 
 	containerReq := testcontainers.ContainerRequest{
 		Image:        p.config.Image + ":" + p.config.Version,

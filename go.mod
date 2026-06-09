@@ -3,7 +3,7 @@ module github.com/kaatinga/bochka
 go 1.25.0
 
 require (
-	github.com/kaatinga/strconv v1.3.0
+	github.com/kaatinga/strconv v1.4.0
 	github.com/moby/moby/api v1.54.2
 	github.com/testcontainers/testcontainers-go v0.42.0
 )
