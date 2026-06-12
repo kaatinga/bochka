@@ -30,7 +30,7 @@ go get -u github.com/kaatinga/bochka
 Here's a minimal example to get you started:
 
 ```go
-package main
+package myapp_test
 
 import (
 	"context"
@@ -65,7 +65,6 @@ package bochka_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -88,9 +87,7 @@ func TestPostgresContainer(t *testing.T) {
 	}
 	defer helper.Close()
 
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
-		helper.Service().User(), helper.Service().Password(), helper.Service().Host(), helper.Service().Port(), helper.Service().DBName())
-	conn, err := pgx.Connect(ctx, connStr)
+	conn, err := pgx.Connect(ctx, helper.Service().DSN())
 	if err != nil {
 		t.Fatalf("failed to connect to postgres: %v", err)
 	}
@@ -140,6 +137,38 @@ func TestNatsContainer(t *testing.T) {
 }
 ```
 
+### Redis
+```go
+package bochka_test
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/kaatinga/bochka"
+	"github.com/redis/go-redis/v9"
+)
+
+func TestRedisContainer(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	helper := bochka.NewRedis(t, ctx, bochka.WithPort("6390"))
+	if err := helper.Start(); err != nil {
+		t.Fatalf("failed to start Redis container: %v", err)
+	}
+	defer helper.Close()
+
+	rdb := redis.NewClient(&redis.Options{Addr: helper.Service().Addr()})
+	defer rdb.Close()
+
+	if err := rdb.Ping(ctx).Err(); err != nil {
+		t.Fatalf("redis ping: %v", err)
+	}
+}
+```
+
 ### Multiple Services on Shared Network
 ```go
 func TestMultipleServices(t *testing.T) {
@@ -183,10 +212,11 @@ func TestMultipleServices(t *testing.T) {
 ## API
 
 ### Generic Container Management
-- `func NewPostgres(t *testing.T, ctx context.Context, opts ...option) *Bochka[*PostgresService]`: Creates a new PostgreSQL test helper.
-- `func NewNats(t *testing.T, ctx context.Context, opts ...option) *Bochka[*NatsService]`: Creates a new NATS test helper.
+- `func NewPostgres(t *testing.T, ctx context.Context, opts ...Option) *Bochka[*PostgresService]`: Creates a new PostgreSQL test helper.
+- `func NewRedis(t *testing.T, ctx context.Context, opts ...Option) *Bochka[*RedisService]`: Creates a new Redis test helper.
+- `func NewNats(t *testing.T, ctx context.Context, opts ...Option) *Bochka[*NatsService]`: Creates a new NATS test helper.
 - `func (b *Bochka[T]) Start() error`: Starts the container.
-- `func (b *Bochka[T]) Close() error`: Stops and removes the container.
+- `func (b *Bochka[T]) Close() error`: Stops and removes the container, and removes the Docker network if it was created by the helper.
 - `func (b *Bochka[T]) NetworkName() string`: Returns the name of the Docker network used by the container.
 - `func (b *Bochka[T]) Service() T`: Returns the underlying container service.
 - `func (b *Bochka[T]) PrintLogs()`: Prints the container logs to the test output.
@@ -198,6 +228,13 @@ func TestMultipleServices(t *testing.T) {
 - `func (p *PostgresService) Password() string`: Returns the password (default: "12345").
 - `func (p *PostgresService) DBName() string`: Returns the database name (default: "testdb").
 - `func (p *PostgresService) HostAlias() string`: Returns the network alias.
+- `func (p *PostgresService) DSN() string`: Returns a ready-to-use connection string (with `sslmode=disable`).
+
+### Redis API
+- `func (r *RedisService) Host() string`: Returns the host address.
+- `func (r *RedisService) Port() uint16`: Returns the mapped port.
+- `func (r *RedisService) HostAlias() string`: Returns the network alias.
+- `func (r *RedisService) Addr() string`: Returns `host:port` for Redis connections.
 
 ### NATS API
 - `func (n *NatsService) Host() string`: Returns the host address.
@@ -205,7 +242,7 @@ func TestMultipleServices(t *testing.T) {
 - `func (n *NatsService) HostAlias() string`: Returns the network alias.
 
 ### Options
-- `WithPort(port string)`: Sets the host port for the container port binding.
+- `WithPort(port string)`: Sets the host port for the container port binding. An empty string lets Docker pick a random free port; read it back via `Service().Port()`. Defaults: PostgreSQL `5433`, Redis `6380`, NATS `14222`.
 - `WithCustomImage(image, version string)`: Sets a custom Docker image and version for the container.
 - `WithNetwork(network *testcontainers.DockerNetwork)`: Sets a custom Docker network for the container to join.
 - `WithEnvVars(vars map[string]string)`: Adds custom environment variables to the container. Multiple calls to `WithEnvVars` will merge the environment variables.
