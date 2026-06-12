@@ -6,13 +6,15 @@ import (
 	"github.com/moby/moby/api/types/network"
 )
 
-var (
-	AnyIP netip.Addr
-)
+// AnyIP binds container ports on all host interfaces.
+var AnyIP = netip.IPv4Unspecified()
 
-func init() {
-	natsExposedPort, _ = network.ParsePort(natsPort + "/tcp")
-	postgresExposedPort, _ = network.ParsePort(postgresPort + "/tcp")
-	redisExposedPort, _ = network.ParsePort(redisPort + "/tcp")
-	AnyIP, _ = netip.ParseAddr("0.0.0.0")
+// mustParsePort parses a TCP port number into a network.Port and panics on
+// failure. It is used only for compile-time constant ports.
+func mustParsePort(port string) network.Port {
+	p, err := network.ParsePort(port + "/tcp")
+	if err != nil {
+		panic(err)
+	}
+	return p
 }

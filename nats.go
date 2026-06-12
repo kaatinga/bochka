@@ -17,9 +17,7 @@ const (
 	natsPort      = "4222"
 )
 
-var (
-	natsExposedPort network.Port
-)
+var natsExposedPort = mustParsePort(natsPort)
 
 // NatsService implements ContainerService for NATS
 type NatsService struct {
@@ -59,7 +57,6 @@ func (n *NatsService) Start(ctx context.Context) error {
 					},
 				},
 			}
-			hostConfig.AutoRemove = false // to see logs
 		},
 	}
 
@@ -92,8 +89,12 @@ func (n *NatsService) Start(ctx context.Context) error {
 	return nil
 }
 
-// Close terminates the NATS container.
+// Close terminates the NATS container. It is safe to call even if the
+// container was never started.
 func (n *NatsService) Close() error {
+	if n.Container == nil {
+		return nil
+	}
 	return n.Container.Terminate(context.Background())
 }
 
@@ -123,23 +124,26 @@ func (n *NatsService) GetContainer() testcontainers.Container {
 }
 
 // NewNats creates a new NATS test helper.
-func NewNats(t *testing.T, ctx context.Context, settings ...option) *Bochka[*NatsService] {
+func NewNats(t *testing.T, ctx context.Context, settings ...Option) *Bochka[*NatsService] {
 	opts := options{
 		// default settings
 		image:   "docker.io/library/nats",
 		version: "2-alpine",
-		port:    natsPort,
+		// not the standard 4222 to avoid clashing with a locally running NATS
+		port: "14222",
 	}
 
 	opts.applyOptions(settings)
 
 	network := opts.network
+	networkOwned := false
 	if network == nil {
 		var err error
 		network, err = NewNetwork(ctx)
 		if err != nil {
 			t.Fatalf("failed to create network: %v", err)
 		}
+		networkOwned = true
 	}
 
 	service := &NatsService{
@@ -153,11 +157,11 @@ func NewNats(t *testing.T, ctx context.Context, settings ...option) *Bochka[*Nat
 	}
 
 	bochka := &Bochka[*NatsService]{
-		t:       t,
-		options: opts,
-		Context: ctx,
-		network: network,
-		service: service,
+		t:            t,
+		Context:      ctx,
+		network:      network,
+		networkOwned: networkOwned,
+		service:      service,
 	}
 
 	return bochka

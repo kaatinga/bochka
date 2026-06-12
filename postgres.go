@@ -20,9 +20,7 @@ const (
 	postgresPort      = "5432"
 )
 
-var (
-	postgresExposedPort network.Port
-)
+var postgresExposedPort = mustParsePort(postgresPort)
 
 // PostgresService implements ContainerService for PostgreSQL
 type PostgresService struct {
@@ -45,16 +43,19 @@ func (p *PostgresService) Start(ctx context.Context) error {
 
 	containerReq := testcontainers.ContainerRequest{
 		Image:        p.config.Image + ":" + p.config.Version,
-		ExposedPorts: []string{"5432/tcp"},
+		ExposedPorts: []string{postgresExposedPort.String()},
 		HostConfigModifier: func(hostConfig *container.HostConfig) {
+			// No AutoRemove: it races with Terminate ("removal already in
+			// progress"); the reaper cleans up if the test crashes.
 			hostConfig.PortBindings = network.PortMap{
 				postgresExposedPort: {{HostIP: AnyIP, HostPort: p.config.HostPort}},
 			}
-			hostConfig.AutoRemove = true
 		},
 		WaitingFor: wait.ForAll(
-			wait.ForLog("database system is ready to accept connections"),
-			wait.ForListeningPort("5432/tcp"),
+			// Postgres emits this line twice: once from the temporary server
+			// started by initdb and once from the real one.
+			wait.ForLog("database system is ready to accept connections").WithOccurrence(2),
+			wait.ForListeningPort(postgresExposedPort.String()),
 		),
 		Env:      envVars,
 		Networks: []string{p.network.Name},
@@ -79,7 +80,7 @@ func (p *PostgresService) Start(ctx context.Context) error {
 		return err
 	}
 
-	mappedPort, err := p.Container.MappedPort(ctx, "5432")
+	mappedPort, err := p.Container.MappedPort(ctx, postgresPort)
 	if err != nil {
 		return err
 	}
@@ -91,8 +92,12 @@ func (p *PostgresService) Start(ctx context.Context) error {
 	return nil
 }
 
-// Close terminates the PostgreSQL container.
+// Close terminates the PostgreSQL container. It is safe to call even if the
+// container was never started.
 func (p *PostgresService) Close() error {
+	if p.Container == nil {
+		return nil
+	}
 	return p.Container.Terminate(context.Background())
 }
 
@@ -136,12 +141,13 @@ func (p *PostgresService) GetContainer() testcontainers.Container {
 	return p.Container
 }
 
+// DSN returns a connection string for the PostgreSQL instance.
 func (p *PostgresService) DSN() string {
-	return "postgres://" + p.User() + ":" + p.Password() + "@" + p.Host() + ":" + faststrconv.Uint162String(p.Port()) + "/" + p.DBName()
+	return "postgres://" + p.User() + ":" + p.Password() + "@" + p.Host() + ":" + faststrconv.Uint162String(p.Port()) + "/" + p.DBName() + "?sslmode=disable"
 }
 
 // NewPostgres creates a new PostgreSQL test helper.
-func NewPostgres(t *testing.T, ctx context.Context, settings ...option) *Bochka[*PostgresService] {
+func NewPostgres(t *testing.T, ctx context.Context, settings ...Option) *Bochka[*PostgresService] {
 	opts := options{
 		// default settings
 		image:   "postgres",
@@ -152,12 +158,14 @@ func NewPostgres(t *testing.T, ctx context.Context, settings ...option) *Bochka[
 	opts.applyOptions(settings)
 
 	network := opts.network
+	networkOwned := false
 	if network == nil {
 		var err error
 		network, err = NewNetwork(ctx)
 		if err != nil {
 			t.Fatalf("failed to create network: %v", err)
 		}
+		networkOwned = true
 	}
 
 	service := &PostgresService{
@@ -171,11 +179,11 @@ func NewPostgres(t *testing.T, ctx context.Context, settings ...option) *Bochka[
 	}
 
 	bochka := &Bochka[*PostgresService]{
-		t:       t,
-		options: opts,
-		Context: ctx,
-		network: network,
-		service: service,
+		t:            t,
+		Context:      ctx,
+		network:      network,
+		networkOwned: networkOwned,
+		service:      service,
 	}
 
 	return bochka
