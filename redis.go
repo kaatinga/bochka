@@ -16,9 +16,7 @@ const (
 	redisPort      = "6379"
 )
 
-var (
-	redisExposedPort network.Port
-)
+var redisExposedPort = mustParsePort(redisPort)
 
 // RedisService implements ContainerService for Redis.
 type RedisService struct {
@@ -57,7 +55,6 @@ func (r *RedisService) Start(ctx context.Context) error {
 					},
 				},
 			}
-			hostConfig.AutoRemove = true
 		},
 	}
 
@@ -90,8 +87,12 @@ func (r *RedisService) Start(ctx context.Context) error {
 	return nil
 }
 
-// Close terminates the Redis container.
+// Close terminates the Redis container. It is safe to call even if the
+// container was never started.
 func (r *RedisService) Close() error {
+	if r.Container == nil {
+		return nil
+	}
 	return r.Container.Terminate(context.Background())
 }
 
@@ -126,7 +127,7 @@ func (r *RedisService) Addr() string {
 }
 
 // NewRedis creates a new Redis test helper.
-func NewRedis(t *testing.T, ctx context.Context, settings ...option) *Bochka[*RedisService] {
+func NewRedis(t *testing.T, ctx context.Context, settings ...Option) *Bochka[*RedisService] {
 	opts := options{
 		image:   "redis",
 		version: "7-alpine",
@@ -136,12 +137,14 @@ func NewRedis(t *testing.T, ctx context.Context, settings ...option) *Bochka[*Re
 	opts.applyOptions(settings)
 
 	net := opts.network
+	networkOwned := false
 	if net == nil {
 		var err error
 		net, err = NewNetwork(ctx)
 		if err != nil {
 			t.Fatalf("failed to create network: %v", err)
 		}
+		networkOwned = true
 	}
 
 	service := &RedisService{
@@ -155,11 +158,11 @@ func NewRedis(t *testing.T, ctx context.Context, settings ...option) *Bochka[*Re
 	}
 
 	b := &Bochka[*RedisService]{
-		t:       t,
-		options: opts,
-		Context: ctx,
-		network: net,
-		service: service,
+		t:            t,
+		Context:      ctx,
+		network:      net,
+		networkOwned: networkOwned,
+		service:      service,
 	}
 
 	return b
