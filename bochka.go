@@ -19,6 +19,8 @@ type ContainerService interface {
 // ContainerConfig holds common configuration for any container
 type ContainerConfig struct {
 	EnvVars  map[string]string
+	Files    map[string]string // container path -> content
+	Cmd      []string
 	Image    string
 	Version  string
 	HostPort string

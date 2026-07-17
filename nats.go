@@ -2,6 +2,7 @@ package bochka
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,11 +36,17 @@ func (n *NatsService) Start(ctx context.Context) error {
 		envVars = make(map[string]string)
 	}
 
+	cmd := n.config.Cmd
+	if len(cmd) == 0 {
+		cmd = []string{"nats-server", "-js"}
+	}
+
 	containerReq := testcontainers.ContainerRequest{
 		Image:        n.config.Image + ":" + n.config.Version,
-		Cmd:          []string{"nats-server", "-js"},
+		Cmd:          cmd,
 		ExposedPorts: []string{natsExposedPort.String()},
 		Env:          envVars,
+		Files:        containerFiles(n.config.Files),
 		WaitingFor: wait.ForAll(
 			wait.ForLog("Server is ready").WithStartupTimeout(30*time.Second),
 			wait.ForListeningPort(natsExposedPort.String()),
@@ -118,9 +125,29 @@ func (n *NatsService) HostAlias() string {
 	return natsHostAlias
 }
 
+// Addr returns host:port for NATS client connections.
+func (n *NatsService) Addr() string {
+	return n.host + ":" + faststrconv.Uint162String(n.port)
+}
+
 // GetContainer returns the underlying container service
 func (n *NatsService) GetContainer() testcontainers.Container {
 	return n.Container
+}
+
+func containerFiles(files map[string]string) []testcontainers.ContainerFile {
+	if len(files) == 0 {
+		return nil
+	}
+	out := make([]testcontainers.ContainerFile, 0, len(files))
+	for path, content := range files {
+		out = append(out, testcontainers.ContainerFile{
+			Reader:            strings.NewReader(content),
+			ContainerFilePath: path,
+			FileMode:          0o644,
+		})
+	}
+	return out
 }
 
 // NewNats creates a new NATS test helper.
@@ -153,6 +180,8 @@ func NewNats(t *testing.T, ctx context.Context, settings ...Option) *Bochka[*Nat
 			Version:  opts.version,
 			HostPort: opts.port,
 			EnvVars:  opts.extraEnvVars,
+			Cmd:      opts.cmd,
+			Files:    opts.files,
 		},
 	}
 

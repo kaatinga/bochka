@@ -9,6 +9,8 @@ import (
 type options struct {
 	network      *testcontainers.DockerNetwork
 	extraEnvVars map[string]string
+	files        map[string]string // container path -> file content
+	cmd          []string
 	image        string
 	version      string
 	port         string // Host port for container
@@ -19,6 +21,7 @@ type Option func(*options)
 
 func (o *options) applyOptions(opts []Option) {
 	o.extraEnvVars = make(map[string]string)
+	o.files = make(map[string]string)
 	for _, opt := range opts {
 		opt(o)
 	}
@@ -53,5 +56,21 @@ func WithPort(port string) Option {
 func WithEnvVars(vars map[string]string) Option {
 	return func(opt *options) {
 		maps.Copy(opt.extraEnvVars, vars)
+	}
+}
+
+// WithCmd overrides the container command. When unset, each service uses its default
+// (for NATS: nats-server -js).
+func WithCmd(args ...string) Option {
+	return func(opt *options) {
+		opt.cmd = append([]string(nil), args...)
+	}
+}
+
+// WithFiles mounts files into the container. Keys are absolute container paths;
+// values are the file contents written at those paths. Multiple calls merge entries.
+func WithFiles(files map[string]string) Option {
+	return func(opt *options) {
+		maps.Copy(opt.files, files)
 	}
 }

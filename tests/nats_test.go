@@ -80,3 +80,38 @@ func TestNatsWithCustomEnvVars(t *testing.T) {
 	t.Logf("NATS container started with custom environment variables")
 	t.Logf("NATS connection: %s:%d", helper.Service().Host(), helper.Service().Port())
 }
+
+func TestNatsWithCmdAndFiles(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	conf := `
+port: 4222
+server_name: bochka-config-test
+`
+	helper := bochka.NewNats(t, ctx,
+		bochka.WithPort(""),
+		bochka.WithCmd("nats-server", "-c", "/etc/nats/nats.conf"),
+		bochka.WithFiles(map[string]string{
+			"/etc/nats/nats.conf": conf,
+		}),
+	)
+	if err := helper.Start(); err != nil {
+		t.Fatalf("failed to start NATS with config: %v", err)
+	}
+	defer func() {
+		if err := helper.Close(); err != nil {
+			t.Errorf("failed to close helper: %v", err)
+		}
+	}()
+
+	nc, err := nats.Connect("nats://" + helper.Service().Addr())
+	if err != nil {
+		t.Fatalf("failed to connect to NATS: %v", err)
+	}
+	defer nc.Close()
+
+	if !nc.IsConnected() {
+		t.Error("NATS client is not connected")
+	}
+}
